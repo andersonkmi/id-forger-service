@@ -8,7 +8,7 @@ import org.springframework.stereotype.Repository;
 import javax.annotation.Nonnull;
 
 @Repository
-class JdbcTemplateDataRepository {
+public class JdbcTemplateDataRepository {
     private final JdbcTemplate jdbcTemplate;
 
     @Autowired
