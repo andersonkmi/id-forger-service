@@ -37,8 +37,8 @@ public class IdGeneratorController extends BaseControllerV1 {
 
     @GetMapping(value = "/ids/{seriesName}",
             produces = APPLICATION_JSON_VALUE)
-    public ResponseEntity<IdResponse> getPaginatedClients(@PathVariable String seriesName,
-                                                          @RequestParam(value = "format", required = false) String format) {
+    public ResponseEntity<IdResponse> getNextId(@PathVariable String seriesName,
+                                                @RequestParam(value = "format", required = false) String format) {
         try {
             String type = getIdGeneratorProcessorType(format);
             IdGenerationProcessor processor = getProcessor(type);
