@@ -7,15 +7,15 @@ import javax.annotation.Nonnull;
 
 @Service("default")
 class DefaultIdGeneratorProcessor implements IdGenerationProcessor {
-    private final SimpleIdGeneratorUtil simpleIdGeneratorUtil;
+    private final SimpleIdGenerator simpleIdGenerator;
 
     @Autowired
-    DefaultIdGeneratorProcessor(@Nonnull SimpleIdGeneratorUtil simpleIdGeneratorUtil) {
-        this.simpleIdGeneratorUtil = simpleIdGeneratorUtil;
+    DefaultIdGeneratorProcessor(@Nonnull SimpleIdGenerator simpleIdGenerator) {
+        this.simpleIdGenerator = simpleIdGenerator;
     }
 
     @Nonnull
     public String generateId(@Nonnull String seriesName) {
-        return simpleIdGeneratorUtil.generateId(seriesName);
+        return simpleIdGenerator.generateId(seriesName);
     }
 }

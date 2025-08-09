@@ -10,17 +10,17 @@ import static java.lang.String.format;
 
 @Service("timestamped")
 class TimestampedIdGeneratorProcessor implements IdGenerationProcessor {
-    private final SimpleIdGeneratorUtil simpleIdGeneratorUtil;
+    private final SimpleIdGenerator simpleIdGenerator;
 
     @Autowired
-    TimestampedIdGeneratorProcessor(@Nonnull SimpleIdGeneratorUtil simpleIdGeneratorUtil) {
-        this.simpleIdGeneratorUtil = simpleIdGeneratorUtil;
+    TimestampedIdGeneratorProcessor(@Nonnull SimpleIdGenerator simpleIdGenerator) {
+        this.simpleIdGenerator = simpleIdGenerator;
     }
 
     @Nonnull
     @Override
     public String generateId(@Nonnull String seriesName) {
-        long id = simpleIdGeneratorUtil.generateLongId(seriesName);
+        long id = simpleIdGenerator.generateLongId(seriesName);
         return format("%015d-%d", id, Instant.now().toEpochMilli());
     }
 }

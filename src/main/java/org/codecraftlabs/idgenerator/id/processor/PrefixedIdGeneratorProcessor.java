@@ -11,17 +11,17 @@ import static java.lang.String.format;
 
 @Service("prefixed")
 class PrefixedIdGeneratorProcessor implements IdGenerationProcessor {
-    private final SimpleIdGeneratorUtil simpleIdGeneratorUtil;
+    private final SimpleIdGenerator simpleIdGenerator;
 
     @Autowired
-    PrefixedIdGeneratorProcessor(@Nonnull SimpleIdGeneratorUtil simpleIdGeneratorUtil) {
-        this.simpleIdGeneratorUtil = simpleIdGeneratorUtil;
+    PrefixedIdGeneratorProcessor(@Nonnull SimpleIdGenerator simpleIdGenerator) {
+        this.simpleIdGenerator = simpleIdGenerator;
     }
 
     @Nonnull
     @Override
     public String generateId(@Nonnull String seriesName) {
-        long id = simpleIdGeneratorUtil.generateLongId(seriesName);
+        long id = simpleIdGenerator.generateLongId(seriesName);
         Optional<SeriesToSequence> seriesToSequence = SeriesToSequence.findByName(seriesName);
         if (seriesToSequence.isEmpty()) {
             throw new InvalidSeriesException("Series not mapped yet");

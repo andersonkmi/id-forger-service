@@ -12,22 +12,22 @@ import javax.annotation.Nonnull;
 class LuhnCheckedIdGeneratorProcessor implements IdGenerationProcessor {
     private static final Logger logger = LoggerFactory.getLogger(LuhnCheckedIdGeneratorProcessor.class);
 
-    private final SimpleIdGeneratorUtil simpleIdGeneratorUtil;
+    private final SimpleIdGenerator simpleIdGenerator;
     private final LuhnValidator luhnValidator;
 
     @Autowired
-    LuhnCheckedIdGeneratorProcessor(@Nonnull SimpleIdGeneratorUtil simpleIdGeneratorUtil, @Nonnull LuhnValidator luhnValidator) {
-        this.simpleIdGeneratorUtil = simpleIdGeneratorUtil;
+    LuhnCheckedIdGeneratorProcessor(@Nonnull SimpleIdGenerator simpleIdGenerator, @Nonnull LuhnValidator luhnValidator) {
+        this.simpleIdGenerator = simpleIdGenerator;
         this.luhnValidator = luhnValidator;
     }
 
     @Nonnull
     @Override
     public String generateId(@Nonnull String seriesName) {
-        String originalValue = simpleIdGeneratorUtil.generateId(seriesName);
+        String originalValue = simpleIdGenerator.generateId(seriesName);
         int numberOfCalls = 1;
         while(luhnValidator.isInvalid(originalValue)) {
-            originalValue = simpleIdGeneratorUtil.generateId(seriesName);
+            originalValue = simpleIdGenerator.generateId(seriesName);
             numberOfCalls++;
         }
         logger.info("Number of calls until finding a valid luhn checked number: '{}'", numberOfCalls);

@@ -54,6 +54,22 @@ public class IdGeneratorController extends BaseControllerV1 {
         }
     }
 
+    @GetMapping(value = "/ids/{seriesName}/currentValue",
+            produces = APPLICATION_JSON_VALUE)
+    public ResponseEntity<IdResponse> getCurrentId(@PathVariable String seriesName) {
+        try {
+            IdGenerationProcessor processor = getProcessor("default");
+            String id = processor.generateId(seriesName);
+            return generateResponse(id, seriesName);
+        } catch (IdNotGeneratedException exception) {
+            logger.error("Id not generated", exception);
+            throw new ResponseStatusException(BAD_REQUEST, "Id not generated", exception);
+        } catch (InvalidSeriesException exception) {
+            logger.error("Series name is invalid", exception);
+            throw new ResponseStatusException(NOT_FOUND, "Series name is invalid", exception);
+        }
+    }
+
     @Nonnull
     private String getIdGeneratorProcessorType(@CheckForNull String format) {
         return format != null && !format.isBlank() ? format : "default";

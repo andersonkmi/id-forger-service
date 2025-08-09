@@ -11,18 +11,18 @@ import java.security.NoSuchAlgorithmException;
 
 @Service("sha256")
 class SHA256IdGeneratorProcessor implements IdGenerationProcessor {
-    private final SimpleIdGeneratorUtil simpleIdGeneratorUtil;
+    private final SimpleIdGenerator simpleIdGenerator;
 
     @Autowired
-    SHA256IdGeneratorProcessor(SimpleIdGeneratorUtil simpleIdGeneratorUtil) {
-        this.simpleIdGeneratorUtil = simpleIdGeneratorUtil;
+    SHA256IdGeneratorProcessor(SimpleIdGenerator simpleIdGenerator) {
+        this.simpleIdGenerator = simpleIdGenerator;
     }
 
 
     @Nonnull
     @Override
     public String generateId(@Nonnull String seriesName) {
-        String originalValue = simpleIdGeneratorUtil.generateId(seriesName);
+        String originalValue = simpleIdGenerator.generateId(seriesName);
         return hashString(originalValue);
     }
 

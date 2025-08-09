@@ -9,11 +9,11 @@ import org.springframework.stereotype.Component;
 import javax.annotation.Nonnull;
 
 @Component
-class SimpleIdGeneratorUtil {
+class SimpleIdGenerator {
     private final IdGenerationRepository idGenerationRepository;
 
     @Autowired
-    SimpleIdGeneratorUtil(IdGenerationRepository idGenerationRepository) {
+    SimpleIdGenerator(IdGenerationRepository idGenerationRepository) {
         this.idGenerationRepository = idGenerationRepository;
     }
 

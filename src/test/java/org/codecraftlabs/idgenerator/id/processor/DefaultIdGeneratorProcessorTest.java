@@ -14,7 +14,7 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 public class DefaultIdGeneratorProcessorTest {
     @Mock
-    private SimpleIdGeneratorUtil simpleIdGeneratorUtil;
+    private SimpleIdGenerator simpleIdGenerator;
 
     @InjectMocks
     private DefaultIdGeneratorProcessor defaultIdGeneratorProcessor;
@@ -22,7 +22,7 @@ public class DefaultIdGeneratorProcessorTest {
     @Test
     public void when_sequence_not_found_should_raise_exception() {
         // Setup mock
-        when(simpleIdGeneratorUtil.generateId(anyString()))
+        when(simpleIdGenerator.generateId(anyString()))
                 .thenThrow(IdNotGeneratedException.class);
 
         assertThatExceptionOfType(IdNotGeneratedException.class)
@@ -32,7 +32,7 @@ public class DefaultIdGeneratorProcessorTest {
     @Test
     public void when_database_exception_happens_should_raise_exception() {
         // Setup mock
-        when(simpleIdGeneratorUtil.generateId(anyString()))
+        when(simpleIdGenerator.generateId(anyString()))
                 .thenThrow(InvalidSeriesException.class);
 
         assertThatExceptionOfType(InvalidSeriesException.class)
@@ -42,7 +42,7 @@ public class DefaultIdGeneratorProcessorTest {
     @Test
     public void when_ok_id_should_return() {
         // Setup mock
-        when(simpleIdGeneratorUtil.generateId(anyString())).thenReturn("100");
+        when(simpleIdGenerator.generateId(anyString())).thenReturn("100");
         var result = defaultIdGeneratorProcessor.generateId("default");
         assertThat(result).isEqualTo("100");
     }
