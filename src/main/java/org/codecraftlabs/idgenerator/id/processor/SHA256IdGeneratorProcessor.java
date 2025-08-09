@@ -10,7 +10,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
 @Service("sha256")
-class SHA256IdGeneratorProcessor implements IdGenerationProcessor {
+class SHA256IdGeneratorProcessor implements IdFormatProcessor {
     private final SimpleIdGenerator simpleIdGenerator;
 
     @Autowired

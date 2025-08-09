@@ -7,7 +7,7 @@ import javax.annotation.Nonnull;
 import java.util.Base64;
 
 @Service("base64")
-class Base64IdGeneratorProcessor implements IdGenerationProcessor {
+class Base64IdGeneratorProcessor implements IdFormatProcessor {
     private final SimpleIdGenerator simpleIdGenerator;
 
     @Autowired

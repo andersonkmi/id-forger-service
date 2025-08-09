@@ -1,6 +1,6 @@
 package org.codecraftlabs.idgenerator.controller;
 
-import org.codecraftlabs.idgenerator.id.processor.IdGenerationProcessor;
+import org.codecraftlabs.idgenerator.id.processor.IdFormatProcessor;
 import org.codecraftlabs.idgenerator.id.processor.IdGenerationServiceFactory;
 import org.codecraftlabs.idgenerator.id.processor.IdNotGeneratedException;
 import org.codecraftlabs.idgenerator.id.processor.InvalidSeriesException;
@@ -41,7 +41,7 @@ public class IdGeneratorController extends BaseControllerV1 {
                                                 @RequestParam(value = "format", required = false) String format) {
         try {
             String type = getIdGeneratorProcessorType(format);
-            IdGenerationProcessor processor = getProcessor(type);
+            IdFormatProcessor processor = getProcessor(type);
             String id = processor.generateId(seriesName);
             logger.info("Generated id '{}' for series '{}' using '{}' format", id, seriesName, type);
             return generateResponse(id, seriesName);
@@ -58,7 +58,7 @@ public class IdGeneratorController extends BaseControllerV1 {
             produces = APPLICATION_JSON_VALUE)
     public ResponseEntity<IdResponse> getCurrentId(@PathVariable String seriesName) {
         try {
-            IdGenerationProcessor processor = getProcessor("default");
+            IdFormatProcessor processor = getProcessor("default");
             String id = processor.generateId(seriesName);
             return generateResponse(id, seriesName);
         } catch (IdNotGeneratedException exception) {
@@ -76,8 +76,8 @@ public class IdGeneratorController extends BaseControllerV1 {
     }
 
     @Nonnull
-    private IdGenerationProcessor getProcessor(@Nonnull String type) {
-        Optional<IdGenerationProcessor> processor = idGenerationServiceFactory.getProcessor(type);
+    private IdFormatProcessor getProcessor(@Nonnull String type) {
+        Optional<IdFormatProcessor> processor = idGenerationServiceFactory.getProcessor(type);
         if (processor.isEmpty()) {
             throw new ResponseStatusException(BAD_REQUEST, "Invalid format requested");
         }

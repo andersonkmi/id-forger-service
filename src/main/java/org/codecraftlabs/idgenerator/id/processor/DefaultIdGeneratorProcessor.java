@@ -6,7 +6,7 @@ import org.springframework.stereotype.Service;
 import javax.annotation.Nonnull;
 
 @Service("default")
-class DefaultIdGeneratorProcessor implements IdGenerationProcessor {
+class DefaultIdGeneratorProcessor implements IdFormatProcessor {
     private final SimpleIdGenerator simpleIdGenerator;
 
     @Autowired

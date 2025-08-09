@@ -11,15 +11,15 @@ import static java.util.Optional.ofNullable;
 
 @Component
 public class IdGenerationServiceFactory {
-    private final Map<String, IdGenerationProcessor> processors;
+    private final Map<String, IdFormatProcessor> processors;
 
     @Autowired
-    public IdGenerationServiceFactory(Map<String, IdGenerationProcessor> processors) {
+    public IdGenerationServiceFactory(Map<String, IdFormatProcessor> processors) {
         this.processors = processors;
     }
 
     @Nonnull
-    public Optional<IdGenerationProcessor> getProcessor(@Nonnull String type) {
+    public Optional<IdFormatProcessor> getProcessor(@Nonnull String type) {
         return ofNullable(this.processors.get(type));
     }
 }

@@ -9,7 +9,7 @@ import org.springframework.stereotype.Service;
 import javax.annotation.Nonnull;
 
 @Service("nonluhn")
-class NonLuhnCheckedIdGeneratorProcessor implements IdGenerationProcessor {
+class NonLuhnCheckedIdGeneratorProcessor implements IdFormatProcessor {
     private static final Logger logger = LoggerFactory.getLogger(NonLuhnCheckedIdGeneratorProcessor.class);
 
     private final SimpleIdGenerator simpleIdGenerator;

@@ -10,7 +10,7 @@ import java.util.Optional;
 import static java.lang.String.format;
 
 @Service("prefixed")
-class PrefixedIdGeneratorProcessor implements IdGenerationProcessor {
+class PrefixedIdGeneratorProcessor implements IdFormatProcessor {
     private final SimpleIdGenerator simpleIdGenerator;
 
     @Autowired

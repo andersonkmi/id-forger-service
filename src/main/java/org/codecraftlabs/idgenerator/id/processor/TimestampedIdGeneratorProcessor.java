@@ -9,7 +9,7 @@ import java.time.Instant;
 import static java.lang.String.format;
 
 @Service("timestamped")
-class TimestampedIdGeneratorProcessor implements IdGenerationProcessor {
+class TimestampedIdGeneratorProcessor implements IdFormatProcessor {
     private final SimpleIdGenerator simpleIdGenerator;
 
     @Autowired
