@@ -9,7 +9,7 @@ interfering with each other.
 ## 1. Id generation formats
 
 When requesting a new id, the following formats are currently supported:
-- default: returns the number as is without any formatting
+- plain: returns the number as is without any formatting **(If no format is provided, this is the default format used to generated the id)**
 - base64: returns a base-64 encoded version of the newly created id
 - sha256: applies SHA-256 hashing on the id just generated
 - luhn: returns a luhn valid number
