@@ -14,7 +14,7 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.ArgumentMatchers.anyString;
 
 @ExtendWith(MockitoExtension.class)
-public class IdGenerationRepositoryTest {
+public class UniqueIdRepositoryTest {
     @Mock
     private JdbcTemplateDataRepository jdbcTemplateDataRepository;
 
@@ -22,7 +22,7 @@ public class IdGenerationRepositoryTest {
     private SeriesSequenceMapper seriesSequenceMapper;
 
     @InjectMocks
-    private IdGenerationRepository idGenerationRepository;
+    private UniqueIdRepository uniqueIdRepository;
 
     @Test
     public void when_series_is_not_present_should_raise_exception() {
@@ -30,7 +30,7 @@ public class IdGenerationRepositoryTest {
         Mockito.when(seriesSequenceMapper.getSequenceBySeriesName(anyString())).thenReturn(Optional.empty());
 
         assertThatExceptionOfType(SequenceNotFoundException.class)
-                .isThrownBy(() -> this.idGenerationRepository.getId("default"));
+                .isThrownBy(() -> this.uniqueIdRepository.getId("default"));
     }
 
     @Test
@@ -40,6 +40,6 @@ public class IdGenerationRepositoryTest {
         Mockito.when(jdbcTemplateDataRepository.getNextSequenceValue(anyString())).thenThrow(DatabaseException.class);
 
         assertThatExceptionOfType(DatabaseException.class)
-                .isThrownBy(() -> this.idGenerationRepository.getId("default"));
+                .isThrownBy(() -> this.uniqueIdRepository.getId("default"));
     }
 }

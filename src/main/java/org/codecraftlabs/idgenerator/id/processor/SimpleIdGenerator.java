@@ -1,7 +1,7 @@
 package org.codecraftlabs.idgenerator.id.processor;
 
 import org.codecraftlabs.idgenerator.id.repository.DatabaseException;
-import org.codecraftlabs.idgenerator.id.repository.IdGenerationRepository;
+import org.codecraftlabs.idgenerator.id.repository.UniqueIdRepository;
 import org.codecraftlabs.idgenerator.id.repository.SequenceNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -10,11 +10,11 @@ import javax.annotation.Nonnull;
 
 @Component
 class SimpleIdGenerator {
-    private final IdGenerationRepository idGenerationRepository;
+    private final UniqueIdRepository uniqueIdRepository;
 
     @Autowired
-    SimpleIdGenerator(IdGenerationRepository idGenerationRepository) {
-        this.idGenerationRepository = idGenerationRepository;
+    SimpleIdGenerator(UniqueIdRepository uniqueIdRepository) {
+        this.uniqueIdRepository = uniqueIdRepository;
     }
 
     @Nonnull
@@ -25,7 +25,7 @@ class SimpleIdGenerator {
 
     long generateLongId(@Nonnull String seriesName) {
         try {
-            return idGenerationRepository.getId(seriesName);
+            return uniqueIdRepository.getId(seriesName);
         } catch (SequenceNotFoundException exception) {
             throw new InvalidSeriesException("Invalid series name provided", exception);
         } catch (DatabaseException exception) {

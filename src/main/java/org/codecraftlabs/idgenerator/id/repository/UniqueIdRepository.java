@@ -8,13 +8,13 @@ import javax.annotation.Nonnull;
 import java.util.Optional;
 
 @Component
-public class IdGenerationRepository {
+public class UniqueIdRepository {
     private final JdbcTemplateDataRepository jdbcTemplateDataRepository;
     private final SeriesSequenceMapper seriesSequenceMapper;
 
     @Autowired
-    public IdGenerationRepository(@Nonnull JdbcTemplateDataRepository jdbcTemplateDataRepository,
-                                  @Nonnull SeriesSequenceMapper seriesSequenceMapper) {
+    public UniqueIdRepository(@Nonnull JdbcTemplateDataRepository jdbcTemplateDataRepository,
+                              @Nonnull SeriesSequenceMapper seriesSequenceMapper) {
         this.jdbcTemplateDataRepository = jdbcTemplateDataRepository;
         this.seriesSequenceMapper = seriesSequenceMapper;
     }
