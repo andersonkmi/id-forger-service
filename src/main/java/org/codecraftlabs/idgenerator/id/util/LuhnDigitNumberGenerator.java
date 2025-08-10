@@ -7,7 +7,7 @@ import javax.annotation.Nonnull;
 
 @Component
 @Scope("prototype")
-public class LuhnValidNumberGenerator {
+public class LuhnDigitNumberGenerator {
     @Nonnull
     public String generatorLuhnCheckValidNumber(@Nonnull String partialNumber) {
         int luhnDigit = calculateCheckDigit(partialNumber);
