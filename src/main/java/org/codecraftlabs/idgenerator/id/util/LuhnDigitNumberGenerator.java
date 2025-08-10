@@ -19,7 +19,6 @@ public class LuhnDigitNumberGenerator {
         int sum = 0;
         boolean alternate = false;
 
-        // Process digits from right to left
         for (int i = numberWithDummy.length() - 1; i >= 0; i--) {
             int digit = Character.getNumericValue(numberWithDummy.charAt(i));
 
@@ -33,8 +32,6 @@ public class LuhnDigitNumberGenerator {
             sum += digit;
             alternate = !alternate;
         }
-
-        // Calculate what digit would make the sum divisible by 10
         return (10 - (sum % 10)) % 10;
     }
 }
