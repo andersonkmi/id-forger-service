@@ -13,12 +13,12 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-public class DefaultIdGeneratorProcessorTest {
+public class PlainIdGeneratorProcessorTest {
     @Mock
     private IdManager idManager;
 
     @InjectMocks
-    private DefaultIdGeneratorProcessor defaultIdGeneratorProcessor;
+    private PlainIdGeneratorProcessor plainIdGeneratorProcessor;
 
     @Test
     public void when_sequence_not_found_should_raise_exception() {
@@ -27,7 +27,7 @@ public class DefaultIdGeneratorProcessorTest {
                 .thenThrow(IdNotGeneratedException.class);
 
         assertThatExceptionOfType(IdNotGeneratedException.class)
-                .isThrownBy(() -> defaultIdGeneratorProcessor.generateId(anyString()));
+                .isThrownBy(() -> plainIdGeneratorProcessor.generateId(anyString()));
     }
 
     @Test
@@ -37,14 +37,14 @@ public class DefaultIdGeneratorProcessorTest {
                 .thenThrow(InvalidSeriesException.class);
 
         assertThatExceptionOfType(InvalidSeriesException.class)
-                .isThrownBy(() -> defaultIdGeneratorProcessor.generateId(anyString()));
+                .isThrownBy(() -> plainIdGeneratorProcessor.generateId(anyString()));
     }
 
     @Test
     public void when_ok_id_should_return() {
         // Setup mock
         when(idManager.generateId(anyString())).thenReturn("100");
-        var result = defaultIdGeneratorProcessor.generateId("default");
+        var result = plainIdGeneratorProcessor.generateId("default");
         assertThat(result).isEqualTo("100");
     }
 }

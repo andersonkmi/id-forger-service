@@ -74,7 +74,7 @@ public class IdGeneratorController extends BaseControllerV1 {
 
     @Nonnull
     private String getIdGeneratorProcessorType(@CheckForNull String format) {
-        return format != null && !format.isBlank() ? format : "default";
+        return format != null && !format.isBlank() ? format : "plain";
     }
 
     @Nonnull

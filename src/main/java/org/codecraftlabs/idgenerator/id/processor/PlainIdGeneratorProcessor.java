@@ -6,12 +6,12 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.Nonnull;
 
-@Service("default")
-class DefaultIdGeneratorProcessor implements IdFormatProcessor {
+@Service("plain")
+class PlainIdGeneratorProcessor implements IdFormatProcessor {
     private final IdManager idManager;
 
     @Autowired
-    DefaultIdGeneratorProcessor(@Nonnull IdManager idManager) {
+    PlainIdGeneratorProcessor(@Nonnull IdManager idManager) {
         this.idManager = idManager;
     }
 

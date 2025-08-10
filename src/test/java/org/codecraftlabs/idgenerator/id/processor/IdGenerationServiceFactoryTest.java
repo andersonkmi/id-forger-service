@@ -12,8 +12,8 @@ public class IdGenerationServiceFactoryTest {
     private IdGenerationServiceFactory idGenerationServiceFactory;
 
     @Test
-    public void defaultProcessorShouldBePresent() {
-        var result = idGenerationServiceFactory.getProcessor("default");
+    public void plainProcessorShouldBePresent() {
+        var result = idGenerationServiceFactory.getProcessor("plain");
         assertThat(result).isPresent();
     }
 }
