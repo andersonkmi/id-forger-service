@@ -46,8 +46,4 @@ public class LuhnValidator {
 
         return sum % 10 == 0;
     }
-
-    public boolean isInvalid(@Nonnull String number) {
-        return !isValid(number);
-    }
 }
