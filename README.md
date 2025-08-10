@@ -28,7 +28,7 @@ To configure the local Postgresql container, run the commands below.
 
 #### 2.2.1. Setup the image
 ```bash
-cd pgsql/docker
+cd docker/pgsql
 docker image build -t codecraftlabs/idgenerator:1.0.0 .
 ```
 

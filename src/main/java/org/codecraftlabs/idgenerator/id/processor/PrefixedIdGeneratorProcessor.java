@@ -1,5 +1,6 @@
 package org.codecraftlabs.idgenerator.id.processor;
 
+import org.codecraftlabs.idgenerator.id.IdManager;
 import org.codecraftlabs.idgenerator.id.series.SeriesToSequence;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -11,17 +12,17 @@ import static java.lang.String.format;
 
 @Service("prefixed")
 class PrefixedIdGeneratorProcessor implements IdFormatProcessor {
-    private final SimpleIdGenerator simpleIdGenerator;
+    private final IdManager idManager;
 
     @Autowired
-    PrefixedIdGeneratorProcessor(@Nonnull SimpleIdGenerator simpleIdGenerator) {
-        this.simpleIdGenerator = simpleIdGenerator;
+    PrefixedIdGeneratorProcessor(@Nonnull IdManager idManager) {
+        this.idManager = idManager;
     }
 
     @Nonnull
     @Override
     public String generateId(@Nonnull String seriesName) {
-        long id = simpleIdGenerator.generateLongId(seriesName);
+        long id = idManager.generateLongId(seriesName);
         Optional<SeriesToSequence> seriesToSequence = SeriesToSequence.findByName(seriesName);
         if (seriesToSequence.isEmpty()) {
             throw new InvalidSeriesException("Series not mapped yet");

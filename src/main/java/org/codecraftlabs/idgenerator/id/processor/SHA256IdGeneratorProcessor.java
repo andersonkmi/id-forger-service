@@ -1,6 +1,7 @@
 package org.codecraftlabs.idgenerator.id.processor;
 
 
+import org.codecraftlabs.idgenerator.id.IdManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -11,18 +12,18 @@ import java.security.NoSuchAlgorithmException;
 
 @Service("sha256")
 class SHA256IdGeneratorProcessor implements IdFormatProcessor {
-    private final SimpleIdGenerator simpleIdGenerator;
+    private final IdManager idManager;
 
     @Autowired
-    SHA256IdGeneratorProcessor(SimpleIdGenerator simpleIdGenerator) {
-        this.simpleIdGenerator = simpleIdGenerator;
+    SHA256IdGeneratorProcessor(IdManager idManager) {
+        this.idManager = idManager;
     }
 
 
     @Nonnull
     @Override
     public String generateId(@Nonnull String seriesName) {
-        String originalValue = simpleIdGenerator.generateId(seriesName);
+        String originalValue = idManager.generateId(seriesName);
         return hashString(originalValue);
     }
 

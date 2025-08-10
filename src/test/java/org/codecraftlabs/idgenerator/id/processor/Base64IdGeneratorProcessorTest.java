@@ -1,5 +1,6 @@
 package org.codecraftlabs.idgenerator.id.processor;
 
+import org.codecraftlabs.idgenerator.id.IdManager;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -14,7 +15,7 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 public class Base64IdGeneratorProcessorTest {
     @Mock
-    private SimpleIdGenerator simpleIdGenerator;
+    private IdManager idManager;
 
     @InjectMocks
     private Base64IdGeneratorProcessor base64IdGeneratorProcessor;
@@ -22,8 +23,7 @@ public class Base64IdGeneratorProcessorTest {
     @Test
     public void when_sequence_not_found_should_raise_exception() {
         // Setup mock
-        // Setup mock
-        when(simpleIdGenerator.generateId(anyString()))
+        when(idManager.generateId(anyString()))
                 .thenThrow(IdNotGeneratedException.class);
 
         assertThatExceptionOfType(IdNotGeneratedException.class)
@@ -33,7 +33,7 @@ public class Base64IdGeneratorProcessorTest {
     @Test
     public void when_database_exception_happens_should_raise_exception() {
         // Setup mock
-        when(simpleIdGenerator.generateId(anyString()))
+        when(idManager.generateId(anyString()))
                 .thenThrow(InvalidSeriesException.class);
 
         assertThatExceptionOfType(InvalidSeriesException.class)
@@ -43,7 +43,7 @@ public class Base64IdGeneratorProcessorTest {
     @Test
     public void when_ok_id_should_return() {
         // Setup mock
-        when(simpleIdGenerator.generateId(anyString())).thenReturn("100");
+        when(idManager.generateId(anyString())).thenReturn("100");
         var result = base64IdGeneratorProcessor.generateId("default");
         assertThat(result).isEqualTo("MTAw");
     }

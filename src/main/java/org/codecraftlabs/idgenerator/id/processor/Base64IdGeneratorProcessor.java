@@ -1,5 +1,6 @@
 package org.codecraftlabs.idgenerator.id.processor;
 
+import org.codecraftlabs.idgenerator.id.IdManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -8,17 +9,17 @@ import java.util.Base64;
 
 @Service("base64")
 class Base64IdGeneratorProcessor implements IdFormatProcessor {
-    private final SimpleIdGenerator simpleIdGenerator;
+    private final IdManager idManager;
 
     @Autowired
-    Base64IdGeneratorProcessor(@Nonnull SimpleIdGenerator simpleIdGenerator) {
-        this.simpleIdGenerator = simpleIdGenerator;
+    Base64IdGeneratorProcessor(@Nonnull IdManager idManager) {
+        this.idManager = idManager;
     }
 
     @Nonnull
     @Override
     public String generateId(@Nonnull String seriesName) {
-        String value = simpleIdGenerator.generateId(seriesName);
+        String value = idManager.generateId(seriesName);
         return Base64.getEncoder().encodeToString(value.getBytes());
     }
 }

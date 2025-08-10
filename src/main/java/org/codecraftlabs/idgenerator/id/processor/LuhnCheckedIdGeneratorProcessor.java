@@ -1,5 +1,6 @@
 package org.codecraftlabs.idgenerator.id.processor;
 
+import org.codecraftlabs.idgenerator.id.IdManager;
 import org.codecraftlabs.idgenerator.id.util.LuhnValidator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,22 +13,22 @@ import javax.annotation.Nonnull;
 class LuhnCheckedIdGeneratorProcessor implements IdFormatProcessor {
     private static final Logger logger = LoggerFactory.getLogger(LuhnCheckedIdGeneratorProcessor.class);
 
-    private final SimpleIdGenerator simpleIdGenerator;
+    private final IdManager idManager;
     private final LuhnValidator luhnValidator;
 
     @Autowired
-    LuhnCheckedIdGeneratorProcessor(@Nonnull SimpleIdGenerator simpleIdGenerator, @Nonnull LuhnValidator luhnValidator) {
-        this.simpleIdGenerator = simpleIdGenerator;
+    LuhnCheckedIdGeneratorProcessor(@Nonnull IdManager idManager, @Nonnull LuhnValidator luhnValidator) {
+        this.idManager = idManager;
         this.luhnValidator = luhnValidator;
     }
 
     @Nonnull
     @Override
     public String generateId(@Nonnull String seriesName) {
-        String originalValue = simpleIdGenerator.generateId(seriesName);
+        String originalValue = idManager.generateId(seriesName);
         int numberOfCalls = 1;
         while(luhnValidator.isInvalid(originalValue)) {
-            originalValue = simpleIdGenerator.generateId(seriesName);
+            originalValue = idManager.generateId(seriesName);
             numberOfCalls++;
         }
         logger.info("Number of calls until finding a valid luhn checked number: '{}'", numberOfCalls);

@@ -1,5 +1,6 @@
 package org.codecraftlabs.idgenerator.id.processor;
 
+import org.codecraftlabs.idgenerator.id.IdManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -10,17 +11,17 @@ import static java.lang.String.format;
 
 @Service("timestamped")
 class TimestampedIdGeneratorProcessor implements IdFormatProcessor {
-    private final SimpleIdGenerator simpleIdGenerator;
+    private final IdManager idManager;
 
     @Autowired
-    TimestampedIdGeneratorProcessor(@Nonnull SimpleIdGenerator simpleIdGenerator) {
-        this.simpleIdGenerator = simpleIdGenerator;
+    TimestampedIdGeneratorProcessor(@Nonnull IdManager idManager) {
+        this.idManager = idManager;
     }
 
     @Nonnull
     @Override
     public String generateId(@Nonnull String seriesName) {
-        long id = simpleIdGenerator.generateLongId(seriesName);
+        long id = idManager.generateLongId(seriesName);
         return format("%015d-%d", id, Instant.now().toEpochMilli());
     }
 }

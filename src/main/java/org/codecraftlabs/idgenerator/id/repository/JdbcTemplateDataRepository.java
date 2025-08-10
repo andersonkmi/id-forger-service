@@ -28,4 +28,17 @@ public class JdbcTemplateDataRepository {
             throw new DatabaseException("Failed to get the next sequence value", exception);
         }
     }
+
+    long getCurrentSequenceValue(@Nonnull String sequenceName) {
+        try {
+            String statement = String.format("SELECT last_value from %s", sequenceName);
+            Long id = jdbcTemplate.queryForObject(statement, Long.class);
+            if (id == null) {
+                throw new DatabaseException("Failed to retrieve the current value");
+            }
+            return id;
+        } catch (DataAccessException exception) {
+            throw new DatabaseException("Failed to get the current sequence value", exception);
+        }
+    }
 }

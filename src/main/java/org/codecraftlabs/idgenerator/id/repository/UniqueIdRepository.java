@@ -24,6 +24,11 @@ public class UniqueIdRepository {
         return jdbcTemplateDataRepository.getNextSequenceValue(sequenceName);
     }
 
+    public long getCurrentId(@Nonnull String seriesName) {
+        String sequenceName = getSequenceName(seriesName);
+        return jdbcTemplateDataRepository.getCurrentSequenceValue(sequenceName);
+    }
+
     @Nonnull
     private String getSequenceName(@Nonnull String type) {
         Optional<String> sequenceName = seriesSequenceMapper.getSequenceBySeriesName(type);

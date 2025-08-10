@@ -1,5 +1,6 @@
 package org.codecraftlabs.idgenerator.id.processor;
 
+import org.codecraftlabs.idgenerator.id.IdManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -7,15 +8,15 @@ import javax.annotation.Nonnull;
 
 @Service("default")
 class DefaultIdGeneratorProcessor implements IdFormatProcessor {
-    private final SimpleIdGenerator simpleIdGenerator;
+    private final IdManager idManager;
 
     @Autowired
-    DefaultIdGeneratorProcessor(@Nonnull SimpleIdGenerator simpleIdGenerator) {
-        this.simpleIdGenerator = simpleIdGenerator;
+    DefaultIdGeneratorProcessor(@Nonnull IdManager idManager) {
+        this.idManager = idManager;
     }
 
     @Nonnull
     public String generateId(@Nonnull String seriesName) {
-        return simpleIdGenerator.generateId(seriesName);
+        return idManager.generateId(seriesName);
     }
 }
