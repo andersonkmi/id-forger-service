@@ -1,6 +1,6 @@
 package org.codecraftlabs.idgenerator.id.processor;
 
-import org.codecraftlabs.idgenerator.id.IdManager;
+import org.codecraftlabs.idgenerator.id.manager.IdManager;
 import org.codecraftlabs.idgenerator.id.util.LuhnValidator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

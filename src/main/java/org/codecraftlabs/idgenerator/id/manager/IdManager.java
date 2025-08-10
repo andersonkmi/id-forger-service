@@ -1,4 +1,4 @@
-package org.codecraftlabs.idgenerator.id;
+package org.codecraftlabs.idgenerator.id.manager;
 
 import org.codecraftlabs.idgenerator.id.processor.IdNotGeneratedException;
 import org.codecraftlabs.idgenerator.id.processor.InvalidSeriesException;

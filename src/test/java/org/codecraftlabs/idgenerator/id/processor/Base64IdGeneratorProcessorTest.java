@@ -1,6 +1,6 @@
 package org.codecraftlabs.idgenerator.id.processor;
 
-import org.codecraftlabs.idgenerator.id.IdManager;
+import org.codecraftlabs.idgenerator.id.manager.IdManager;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
