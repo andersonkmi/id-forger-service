@@ -10,6 +10,8 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.Nonnull;
 
+import static java.lang.String.valueOf;
+
 @Service
 public class IdManager {
     private final UniqueIdRepository uniqueIdRepository;
@@ -22,7 +24,18 @@ public class IdManager {
     @Nonnull
     public String generateId(@Nonnull String seriesName) {
         long value = generateLongId(seriesName);
-        return String.valueOf(value);
+        return valueOf(value);
+    }
+
+    @Nonnull
+    public String getCurrentValue(@Nonnull String seriesName) {
+        try {
+            return valueOf(uniqueIdRepository.getCurrentId(seriesName));
+        } catch (SequenceNotFoundException exception) {
+            throw new InvalidSeriesException("Invalid series name provided", exception);
+        } catch (DatabaseException exception) {
+            throw new IdNotGeneratedException("Failed to generate id due to a database issue", exception);
+        }
     }
 
     public long generateLongId(@Nonnull String seriesName) {

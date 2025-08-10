@@ -22,11 +22,11 @@ class PrefixedIdGeneratorProcessor implements IdFormatProcessor {
     @Nonnull
     @Override
     public String generateId(@Nonnull String seriesName) {
-        long id = idManager.generateLongId(seriesName);
         Optional<SeriesToSequence> seriesToSequence = SeriesToSequence.findByName(seriesName);
         if (seriesToSequence.isEmpty()) {
             throw new InvalidSeriesException("Series not mapped yet");
         }
+        long id = idManager.generateLongId(seriesName);
         String prefix = seriesToSequence.get().getPrefix();
         return format("%s%015d", prefix, id);
     }

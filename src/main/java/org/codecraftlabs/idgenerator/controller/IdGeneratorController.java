@@ -1,5 +1,6 @@
 package org.codecraftlabs.idgenerator.controller;
 
+import org.codecraftlabs.idgenerator.id.manager.IdManager;
 import org.codecraftlabs.idgenerator.id.processor.IdFormatProcessor;
 import org.codecraftlabs.idgenerator.id.processor.IdGenerationServiceFactory;
 import org.codecraftlabs.idgenerator.id.processor.IdNotGeneratedException;
@@ -29,10 +30,12 @@ public class IdGeneratorController extends BaseControllerV1 {
     private static final Logger logger = LoggerFactory.getLogger(IdGeneratorController.class);
 
     private final IdGenerationServiceFactory idGenerationServiceFactory;
+    private final IdManager idManager;
 
     @Autowired
-    public IdGeneratorController(@Nonnull IdGenerationServiceFactory idGenerationServiceFactory) {
+    public IdGeneratorController(@Nonnull IdGenerationServiceFactory idGenerationServiceFactory, @Nonnull IdManager idManager) {
         this.idGenerationServiceFactory = idGenerationServiceFactory;
+        this.idManager = idManager;
     }
 
     @GetMapping(value = "/ids/{seriesName}",
@@ -58,9 +61,8 @@ public class IdGeneratorController extends BaseControllerV1 {
             produces = APPLICATION_JSON_VALUE)
     public ResponseEntity<IdResponse> getCurrentId(@PathVariable String seriesName) {
         try {
-            IdFormatProcessor processor = getProcessor("default");
-            String id = processor.generateId(seriesName);
-            return generateResponse(id, seriesName);
+            String currentValue = this.idManager.getCurrentValue(seriesName);
+            return generateResponse(currentValue, seriesName);
         } catch (IdNotGeneratedException exception) {
             logger.error("Id not generated", exception);
             throw new ResponseStatusException(BAD_REQUEST, "Id not generated", exception);
