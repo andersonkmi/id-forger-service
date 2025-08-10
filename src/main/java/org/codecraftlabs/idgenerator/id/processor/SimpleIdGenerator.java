@@ -25,7 +25,7 @@ class SimpleIdGenerator {
 
     long generateLongId(@Nonnull String seriesName) {
         try {
-            return uniqueIdRepository.getId(seriesName);
+            return uniqueIdRepository.getNextId(seriesName);
         } catch (SequenceNotFoundException exception) {
             throw new InvalidSeriesException("Invalid series name provided", exception);
         } catch (DatabaseException exception) {

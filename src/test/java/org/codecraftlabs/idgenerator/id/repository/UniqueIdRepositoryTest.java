@@ -30,7 +30,7 @@ public class UniqueIdRepositoryTest {
         Mockito.when(seriesSequenceMapper.getSequenceBySeriesName(anyString())).thenReturn(Optional.empty());
 
         assertThatExceptionOfType(SequenceNotFoundException.class)
-                .isThrownBy(() -> this.uniqueIdRepository.getId("default"));
+                .isThrownBy(() -> this.uniqueIdRepository.getNextId("default"));
     }
 
     @Test
@@ -40,6 +40,6 @@ public class UniqueIdRepositoryTest {
         Mockito.when(jdbcTemplateDataRepository.getNextSequenceValue(anyString())).thenThrow(DatabaseException.class);
 
         assertThatExceptionOfType(DatabaseException.class)
-                .isThrownBy(() -> this.uniqueIdRepository.getId("default"));
+                .isThrownBy(() -> this.uniqueIdRepository.getNextId("default"));
     }
 }

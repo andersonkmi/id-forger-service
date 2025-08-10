@@ -19,7 +19,7 @@ public class UniqueIdRepository {
         this.seriesSequenceMapper = seriesSequenceMapper;
     }
 
-    public long getId(@Nonnull String seriesName) {
+    public long getNextId(@Nonnull String seriesName) {
         String sequenceName = getSequenceName(seriesName);
         return jdbcTemplateDataRepository.getNextSequenceValue(sequenceName);
     }
