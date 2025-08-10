@@ -1,5 +1,6 @@
 package org.codecraftlabs.idgenerator.id.util;
 
+import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Nonnull;
@@ -23,6 +24,7 @@ import javax.annotation.Nonnull;
  * Since 58 is not divisible by 10, this number would fail the Luhn check.
  */
 @Component
+@Scope("prototype")
 public class LuhnValidator {
     public boolean isValid(@Nonnull String number) {
         int sum = 0;

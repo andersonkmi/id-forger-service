@@ -1,0 +1,40 @@
+package org.codecraftlabs.idgenerator.id.util;
+
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Component;
+
+import javax.annotation.Nonnull;
+
+@Component
+@Scope("prototype")
+public class LuhnValidNumberGenerator {
+    @Nonnull
+    public String generatorLuhnCheckValidNumber(@Nonnull String partialNumber) {
+        int luhnDigit = calculateCheckDigit(partialNumber);
+        return String.format("%s%d", partialNumber, luhnDigit);
+    }
+
+    private int calculateCheckDigit(@Nonnull String partialNumber) {
+        String numberWithDummy = partialNumber + "0";
+        int sum = 0;
+        boolean alternate = false;
+
+        // Process digits from right to left
+        for (int i = numberWithDummy.length() - 1; i >= 0; i--) {
+            int digit = Character.getNumericValue(numberWithDummy.charAt(i));
+
+            if (alternate) {
+                digit *= 2;
+                if (digit > 9) {
+                    digit = digit / 10 + digit % 10;
+                }
+            }
+
+            sum += digit;
+            alternate = !alternate;
+        }
+
+        // Calculate what digit would make the sum divisible by 10
+        return (10 - (sum % 10)) % 10;
+    }
+}

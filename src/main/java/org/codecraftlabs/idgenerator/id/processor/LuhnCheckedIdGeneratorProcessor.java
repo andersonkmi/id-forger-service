@@ -1,9 +1,7 @@
 package org.codecraftlabs.idgenerator.id.processor;
 
 import org.codecraftlabs.idgenerator.id.manager.IdManager;
-import org.codecraftlabs.idgenerator.id.util.LuhnValidator;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.codecraftlabs.idgenerator.id.util.LuhnValidNumberGenerator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -11,27 +9,19 @@ import javax.annotation.Nonnull;
 
 @Service("luhn")
 class LuhnCheckedIdGeneratorProcessor implements IdFormatProcessor {
-    private static final Logger logger = LoggerFactory.getLogger(LuhnCheckedIdGeneratorProcessor.class);
-
     private final IdManager idManager;
-    private final LuhnValidator luhnValidator;
+    private final LuhnValidNumberGenerator luhnValidNumberGenerator;
 
     @Autowired
-    LuhnCheckedIdGeneratorProcessor(@Nonnull IdManager idManager, @Nonnull LuhnValidator luhnValidator) {
+    LuhnCheckedIdGeneratorProcessor(@Nonnull IdManager idManager, @Nonnull LuhnValidNumberGenerator luhnValidNumberGenerator) {
         this.idManager = idManager;
-        this.luhnValidator = luhnValidator;
+        this.luhnValidNumberGenerator = luhnValidNumberGenerator;
     }
 
     @Nonnull
     @Override
     public String generateId(@Nonnull String seriesName) {
-        String originalValue = idManager.generateId(seriesName);
-        int numberOfCalls = 1;
-        while(luhnValidator.isInvalid(originalValue)) {
-            originalValue = idManager.generateId(seriesName);
-            numberOfCalls++;
-        }
-        logger.info("Number of calls until finding a valid luhn checked number: '{}'", numberOfCalls);
-        return originalValue;
+        String id = idManager.generateId(seriesName);
+        return luhnValidNumberGenerator.generatorLuhnCheckValidNumber(id);
     }
 }
