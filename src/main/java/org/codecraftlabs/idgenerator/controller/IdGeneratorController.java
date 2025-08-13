@@ -1,9 +1,8 @@
 package org.codecraftlabs.idgenerator.controller;
 
-import org.codecraftlabs.idgenerator.id.manager.IdManager;
-import org.codecraftlabs.idgenerator.id.processor.IdFormatProcessor;
-import org.codecraftlabs.idgenerator.id.processor.IdGenerationServiceFactory;
 import org.codecraftlabs.idgenerator.id.processor.IdNotGeneratedException;
+import org.codecraftlabs.idgenerator.id.processor.IdService;
+import org.codecraftlabs.idgenerator.id.processor.InvalidFormatException;
 import org.codecraftlabs.idgenerator.id.processor.InvalidSeriesException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,9 +14,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
-import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
-import java.util.Optional;
 
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
@@ -28,14 +25,11 @@ import static org.springframework.http.ResponseEntity.status;
 @RestController
 public class IdGeneratorController extends BaseControllerV1 {
     private static final Logger logger = LoggerFactory.getLogger(IdGeneratorController.class);
-
-    private final IdGenerationServiceFactory idGenerationServiceFactory;
-    private final IdManager idManager;
+    private final IdService idService;
 
     @Autowired
-    public IdGeneratorController(@Nonnull IdGenerationServiceFactory idGenerationServiceFactory, @Nonnull IdManager idManager) {
-        this.idGenerationServiceFactory = idGenerationServiceFactory;
-        this.idManager = idManager;
+    public IdGeneratorController(@Nonnull IdService idService) {
+        this.idService = idService;
     }
 
     @GetMapping(value = "/ids/{seriesName}",
@@ -43,17 +37,17 @@ public class IdGeneratorController extends BaseControllerV1 {
     public ResponseEntity<IdResponse> getNextId(@PathVariable String seriesName,
                                                 @RequestParam(value = "format", required = false) String format) {
         try {
-            String type = getIdGeneratorProcessorType(format);
-            IdFormatProcessor processor = getProcessor(type);
-            String id = processor.generateId(seriesName);
-            logger.info("Generated id '{}' for series '{}' using '{}' format", id, seriesName, type);
-            return generateResponse(id, seriesName);
+            String id = idService.generateId(seriesName, format);
+            return generateResponse(id);
         } catch (IdNotGeneratedException exception) {
             logger.error("Id not generated", exception);
             throw new ResponseStatusException(BAD_REQUEST, "Id not generated", exception);
         } catch (InvalidSeriesException exception) {
             logger.error("Series name is invalid", exception);
             throw new ResponseStatusException(NOT_FOUND, "Series name is invalid", exception);
+        } catch (InvalidFormatException exception) {
+            logger.error("Format is invalid", exception);
+            throw new ResponseStatusException(BAD_REQUEST, "Format is invalid", exception);
         }
     }
 
@@ -61,11 +55,11 @@ public class IdGeneratorController extends BaseControllerV1 {
             produces = APPLICATION_JSON_VALUE)
     public ResponseEntity<IdResponse> getCurrentId(@PathVariable String seriesName) {
         try {
-            String currentValue = this.idManager.getCurrentValue(seriesName);
-            return generateResponse(currentValue, seriesName);
+            String currentValue = this.idService.getCurrentValue(seriesName);
+            return generateResponse(currentValue);
         } catch (IdNotGeneratedException exception) {
-            logger.error("Id not generated", exception);
-            throw new ResponseStatusException(BAD_REQUEST, "Id not generated", exception);
+            logger.error("Could not retrieve current value", exception);
+            throw new ResponseStatusException(BAD_REQUEST, "Could not retrieve current value", exception);
         } catch (InvalidSeriesException exception) {
             logger.error("Series name is invalid", exception);
             throw new ResponseStatusException(NOT_FOUND, "Series name is invalid", exception);
@@ -73,21 +67,7 @@ public class IdGeneratorController extends BaseControllerV1 {
     }
 
     @Nonnull
-    private String getIdGeneratorProcessorType(@CheckForNull String format) {
-        return format != null && !format.isBlank() ? format : "plain";
-    }
-
-    @Nonnull
-    private IdFormatProcessor getProcessor(@Nonnull String type) {
-        Optional<IdFormatProcessor> processor = idGenerationServiceFactory.getProcessor(type);
-        if (processor.isEmpty()) {
-            throw new ResponseStatusException(BAD_REQUEST, "Invalid format requested");
-        }
-        return processor.get();
-    }
-
-    @Nonnull
-    private ResponseEntity<IdResponse> generateResponse(@Nonnull String id, @Nonnull String seriesName) {
-        return status(OK).body(new IdResponse(id, seriesName));
+    private ResponseEntity<IdResponse> generateResponse(@Nonnull String id) {
+        return status(OK).body(new IdResponse(id));
     }
 }

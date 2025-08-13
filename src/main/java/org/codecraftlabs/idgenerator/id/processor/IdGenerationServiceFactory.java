@@ -14,12 +14,12 @@ public class IdGenerationServiceFactory {
     private final Map<String, IdFormatProcessor> processors;
 
     @Autowired
-    public IdGenerationServiceFactory(Map<String, IdFormatProcessor> processors) {
+    IdGenerationServiceFactory(Map<String, IdFormatProcessor> processors) {
         this.processors = processors;
     }
 
     @Nonnull
-    public Optional<IdFormatProcessor> getProcessor(@Nonnull String type) {
+    Optional<IdFormatProcessor> getProcessor(@Nonnull String type) {
         return ofNullable(this.processors.get(type));
     }
 }
