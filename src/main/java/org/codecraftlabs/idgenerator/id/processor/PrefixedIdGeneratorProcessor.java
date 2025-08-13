@@ -1,6 +1,5 @@
 package org.codecraftlabs.idgenerator.id.processor;
 
-import org.codecraftlabs.idgenerator.id.manager.IdManager;
 import org.codecraftlabs.idgenerator.id.series.SeriesToSequence;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -12,11 +11,11 @@ import static java.lang.String.format;
 
 @Service("prefixed")
 class PrefixedIdGeneratorProcessor implements IdFormatProcessor {
-    private final IdManager idManager;
+    private final IdGenerator idGenerator;
 
     @Autowired
-    PrefixedIdGeneratorProcessor(@Nonnull IdManager idManager) {
-        this.idManager = idManager;
+    PrefixedIdGeneratorProcessor(@Nonnull IdGenerator idGenerator) {
+        this.idGenerator = idGenerator;
     }
 
     @Nonnull
@@ -26,7 +25,7 @@ class PrefixedIdGeneratorProcessor implements IdFormatProcessor {
         if (seriesToSequence.isEmpty()) {
             throw new InvalidSeriesException("Series not mapped yet");
         }
-        long id = idManager.generateLongId(seriesName);
+        long id = idGenerator.generateLongId(seriesName);
         String prefix = seriesToSequence.get().getPrefix();
         return format("%s%015d", prefix, id);
     }
