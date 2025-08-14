@@ -1,5 +1,7 @@
-package org.codecraftlabs.idgenerator.id.processor;
+package org.codecraftlabs.idgenerator.id.service.processor;
 
+import org.codecraftlabs.idgenerator.id.service.IdNotGeneratedException;
+import org.codecraftlabs.idgenerator.id.service.InvalidSeriesException;
 import org.codecraftlabs.idgenerator.id.repository.DatabaseException;
 import org.codecraftlabs.idgenerator.id.repository.SequenceNotFoundException;
 import org.codecraftlabs.idgenerator.id.repository.UniqueIdRepository;
@@ -15,18 +17,18 @@ public class IdGenerator {
     private final UniqueIdRepository uniqueIdRepository;
 
     @Autowired
-    IdGenerator(UniqueIdRepository uniqueIdRepository) {
+    public IdGenerator(UniqueIdRepository uniqueIdRepository) {
         this.uniqueIdRepository = uniqueIdRepository;
     }
 
     @Nonnull
-    String generateId(@Nonnull String seriesName) {
+    public String generateId(@Nonnull String seriesName) {
         long value = generateLongId(seriesName);
         return valueOf(value);
     }
 
     @Nonnull
-    String getCurrentValue(@Nonnull String seriesName) {
+    public String getCurrentValue(@Nonnull String seriesName) {
         try {
             return valueOf(uniqueIdRepository.getCurrentId(seriesName));
         } catch (SequenceNotFoundException exception) {

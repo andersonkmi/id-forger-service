@@ -1,4 +1,4 @@
-package org.codecraftlabs.idgenerator.id.processor;
+package org.codecraftlabs.idgenerator.id.service.processor;
 
 import org.codecraftlabs.idgenerator.id.util.LuhnValidator;
 import org.slf4j.Logger;

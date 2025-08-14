@@ -1,4 +1,4 @@
-package org.codecraftlabs.idgenerator.id.processor;
+package org.codecraftlabs.idgenerator.id.service;
 
 public class InvalidSeriesException extends RuntimeException {
   public InvalidSeriesException(String message) {
