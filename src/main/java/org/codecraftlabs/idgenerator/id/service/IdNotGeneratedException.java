@@ -1,4 +1,4 @@
-package org.codecraftlabs.idgenerator.id.processor;
+package org.codecraftlabs.idgenerator.id.service;
 
 public class IdNotGeneratedException extends RuntimeException {
     public IdNotGeneratedException(String message, Throwable exception) {

@@ -1,4 +1,4 @@
-package org.codecraftlabs.idgenerator.id.processor;
+package org.codecraftlabs.idgenerator.id.service.processor;
 
 import org.codecraftlabs.idgenerator.id.util.LuhnDigitNumberGenerator;
 import org.springframework.beans.factory.annotation.Autowired;
