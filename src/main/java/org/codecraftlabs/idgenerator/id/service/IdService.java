@@ -1,5 +1,6 @@
 package org.codecraftlabs.idgenerator.id.service;
 
+import org.codecraftlabs.idgenerator.id.Sequence;
 import org.codecraftlabs.idgenerator.id.service.processor.IdFormatProcessor;
 import org.codecraftlabs.idgenerator.id.service.processor.IdGenerator;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,6 +34,11 @@ public class IdService {
     @Nonnull
     public String getCurrentValue(@Nonnull String seriesName) {
         return idGenerator.getCurrentValue(seriesName);
+    }
+
+    @Nonnull
+    public Sequence getSequenceDetails(@Nonnull String sequenceName) {
+        return this.idGenerator.getSequenceDetails(sequenceName);
     }
 
     @Nonnull
