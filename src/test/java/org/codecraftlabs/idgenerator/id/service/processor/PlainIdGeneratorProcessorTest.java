@@ -1,5 +1,7 @@
-package org.codecraftlabs.idgenerator.id.processor;
+package org.codecraftlabs.idgenerator.id.service.processor;
 
+import org.codecraftlabs.idgenerator.id.service.IdNotGeneratedException;
+import org.codecraftlabs.idgenerator.id.service.InvalidSeriesException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -12,12 +14,12 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-public class Base64IdGeneratorProcessorTest {
+public class PlainIdGeneratorProcessorTest {
     @Mock
     private IdGenerator idGenerator;
 
     @InjectMocks
-    private Base64IdGeneratorProcessor base64IdGeneratorProcessor;
+    private PlainIdGeneratorProcessor plainIdGeneratorProcessor;
 
     @Test
     public void when_sequence_not_found_should_raise_exception() {
@@ -26,7 +28,7 @@ public class Base64IdGeneratorProcessorTest {
                 .thenThrow(IdNotGeneratedException.class);
 
         assertThatExceptionOfType(IdNotGeneratedException.class)
-                .isThrownBy(() -> base64IdGeneratorProcessor.generateId(anyString()));
+                .isThrownBy(() -> plainIdGeneratorProcessor.generateId(anyString()));
     }
 
     @Test
@@ -36,14 +38,14 @@ public class Base64IdGeneratorProcessorTest {
                 .thenThrow(InvalidSeriesException.class);
 
         assertThatExceptionOfType(InvalidSeriesException.class)
-                .isThrownBy(() -> base64IdGeneratorProcessor.generateId(anyString()));
+                .isThrownBy(() -> plainIdGeneratorProcessor.generateId(anyString()));
     }
 
     @Test
     public void when_ok_id_should_return() {
         // Setup mock
         when(idGenerator.generateId(anyString())).thenReturn("100");
-        var result = base64IdGeneratorProcessor.generateId("default");
-        assertThat(result).isEqualTo("MTAw");
+        var result = plainIdGeneratorProcessor.generateId("default");
+        assertThat(result).isEqualTo("100");
     }
 }

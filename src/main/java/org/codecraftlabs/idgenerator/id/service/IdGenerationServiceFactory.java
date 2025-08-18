@@ -1,5 +1,6 @@
-package org.codecraftlabs.idgenerator.id.processor;
+package org.codecraftlabs.idgenerator.id.service;
 
+import org.codecraftlabs.idgenerator.id.service.processor.IdFormatProcessor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
