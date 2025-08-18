@@ -1,9 +1,11 @@
 package org.codecraftlabs.idgenerator.controller;
 
+import org.codecraftlabs.idgenerator.id.Sequence;
 import org.codecraftlabs.idgenerator.id.processor.IdNotGeneratedException;
 import org.codecraftlabs.idgenerator.id.processor.IdService;
 import org.codecraftlabs.idgenerator.id.processor.InvalidFormatException;
 import org.codecraftlabs.idgenerator.id.processor.InvalidSeriesException;
+import org.codecraftlabs.idgenerator.id.processor.SequenceDetailsRetrievalException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -60,6 +62,21 @@ public class IdGeneratorController extends BaseControllerV1 {
         } catch (IdNotGeneratedException exception) {
             logger.error("Could not retrieve current value", exception);
             throw new ResponseStatusException(BAD_REQUEST, "Could not retrieve current value", exception);
+        } catch (InvalidSeriesException exception) {
+            logger.error("Series name is invalid", exception);
+            throw new ResponseStatusException(NOT_FOUND, "Series name is invalid", exception);
+        }
+    }
+
+    @GetMapping(value = "/ids/{seriesName}/details",
+            produces = APPLICATION_JSON_VALUE)
+    public ResponseEntity<Sequence> getSequenceDetails(@PathVariable String seriesName) {
+        try {
+            Sequence sequenceDetails = this.idService.getSequenceDetails(seriesName);
+            return status(OK).body(sequenceDetails);
+        } catch (SequenceDetailsRetrievalException exception) {
+            logger.error("Could not retrieve sequence details", exception);
+            throw new ResponseStatusException(BAD_REQUEST, "Could not retrieve sequence details", exception);
         } catch (InvalidSeriesException exception) {
             logger.error("Series name is invalid", exception);
             throw new ResponseStatusException(NOT_FOUND, "Series name is invalid", exception);

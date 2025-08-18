@@ -1,5 +1,6 @@
 package org.codecraftlabs.idgenerator.id.processor;
 
+import org.codecraftlabs.idgenerator.id.Sequence;
 import org.codecraftlabs.idgenerator.id.repository.DatabaseException;
 import org.codecraftlabs.idgenerator.id.repository.SequenceNotFoundException;
 import org.codecraftlabs.idgenerator.id.repository.UniqueIdRepository;
@@ -45,4 +46,14 @@ public class IdGenerator {
             throw new IdNotGeneratedException("Failed to generate id due to a database issue", exception);
         }
     }
+
+    @Nonnull
+    Sequence getSequenceDetails(@Nonnull String name) {
+        try {
+            return this.uniqueIdRepository.getSequenceDetails("public", name);
+        } catch (DatabaseException exception) {
+            throw new SequenceDetailsRetrievalException("Failed to get details about the sequence", exception);
+        }
+    }
+
 }

@@ -1,5 +1,6 @@
 package org.codecraftlabs.idgenerator.id.repository;
 
+import org.codecraftlabs.idgenerator.id.Sequence;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -39,6 +40,16 @@ public class JdbcTemplateDataRepository {
             return id;
         } catch (DataAccessException exception) {
             throw new DatabaseException("Failed to get the current sequence value", exception);
+        }
+    }
+
+    @Nonnull
+    Sequence getSequenceDetails(@Nonnull String schema, @Nonnull String name) {
+        try {
+            String statement = "select schemaname, sequencename, start_value, min_value, max_value, increment_by, cycle, cache_size, last_value from pg_sequences where schemaname = ? and sequencename = ?";
+            return this.jdbcTemplate.queryForObject(statement, new SequenceMapper(), schema, name);
+        } catch (DataAccessException exception) {
+            throw new DatabaseException("Failed to get sequence details", exception);
         }
     }
 }

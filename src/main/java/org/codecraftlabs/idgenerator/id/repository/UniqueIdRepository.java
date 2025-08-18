@@ -1,5 +1,6 @@
 package org.codecraftlabs.idgenerator.id.repository;
 
+import org.codecraftlabs.idgenerator.id.Sequence;
 import org.codecraftlabs.idgenerator.id.series.SeriesSequenceMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -27,6 +28,11 @@ public class UniqueIdRepository {
     public long getCurrentId(@Nonnull String seriesName) {
         String sequenceName = getSequenceName(seriesName);
         return jdbcTemplateDataRepository.getCurrentSequenceValue(sequenceName);
+    }
+
+    @Nonnull
+    public Sequence getSequenceDetails(@Nonnull String schema, @Nonnull String name) {
+        return jdbcTemplateDataRepository.getSequenceDetails(schema, getSequenceName(name));
     }
 
     @Nonnull
