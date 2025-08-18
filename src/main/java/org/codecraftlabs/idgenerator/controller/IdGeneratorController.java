@@ -1,11 +1,11 @@
 package org.codecraftlabs.idgenerator.controller;
 
 import org.codecraftlabs.idgenerator.id.Sequence;
-import org.codecraftlabs.idgenerator.id.processor.IdNotGeneratedException;
-import org.codecraftlabs.idgenerator.id.processor.IdService;
-import org.codecraftlabs.idgenerator.id.processor.InvalidFormatException;
-import org.codecraftlabs.idgenerator.id.processor.InvalidSeriesException;
-import org.codecraftlabs.idgenerator.id.processor.SequenceDetailsRetrievalException;
+import org.codecraftlabs.idgenerator.id.service.IdNotGeneratedException;
+import org.codecraftlabs.idgenerator.id.service.IdService;
+import org.codecraftlabs.idgenerator.id.service.InvalidFormatException;
+import org.codecraftlabs.idgenerator.id.service.InvalidSeriesException;
+import org.codecraftlabs.idgenerator.id.service.SequenceDetailsRetrievalException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

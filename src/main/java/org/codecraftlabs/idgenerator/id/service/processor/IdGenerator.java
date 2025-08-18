@@ -6,6 +6,7 @@ import org.codecraftlabs.idgenerator.id.service.InvalidSeriesException;
 import org.codecraftlabs.idgenerator.id.repository.DatabaseException;
 import org.codecraftlabs.idgenerator.id.repository.SequenceNotFoundException;
 import org.codecraftlabs.idgenerator.id.repository.UniqueIdRepository;
+import org.codecraftlabs.idgenerator.id.service.SequenceDetailsRetrievalException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -50,7 +51,7 @@ public class IdGenerator {
     }
 
     @Nonnull
-    Sequence getSequenceDetails(@Nonnull String name) {
+    public Sequence getSequenceDetails(@Nonnull String name) {
         try {
             return this.uniqueIdRepository.getSequenceDetails("public", name);
         } catch (DatabaseException exception) {
