@@ -53,7 +53,7 @@ java -jar ./build/libs/id-generator-1.0.0.jar
 ### 3.3. Run with remote debugging enabled 
 
 ```shell
-java -Xdebug -Xrunjdwp:server=y,transport=dt_socket,address=8000,suspend=n -jar ./build/libs/id-generator-1.0.0.jar
+java -Xdebug -Xrunjdwp:server=y,transport=dt_socket,address=8000,suspend=n -jar ./build/libs/id-generator-1.1.1.jar
 ```
 
 ## 4. Running the application and the database using Docker compose
@@ -62,7 +62,7 @@ java -Xdebug -Xrunjdwp:server=y,transport=dt_socket,address=8000,suspend=n -jar 
 
 First create the application image using the command below:
 ```shell
-docker image build -t codecraftlabs/idgeneratorapp:1.0.0 -f ./docker/app/Dockerfile .
+docker image build -t codecraftlabs/idgeneratorapp:1.1.1 -f ./docker/app/Dockerfile .
 ```
 
 ### 4.2. Start the containers
