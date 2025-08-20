@@ -92,10 +92,4 @@ dependencies {
 task integrationTest(type: Test) {
     testClassesDirs = sourceSets.integrationTest.output.classesDirs
     classpath = sourceSets.integrationTest.runtimeClasspath
-
-    // Optional: run integration tests after unit tests
-    //shouldRunAfter test
 }
-
-// Optional: make 'check' task run integration tests
-//check.dependsOn integrationTest
