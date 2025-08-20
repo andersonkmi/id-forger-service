@@ -66,3 +66,36 @@ tasks.register('deleteLogs', Delete) {
 tasks.named("clean") {
 	dependsOn tasks.named("deleteLogs")
 }
+
+sourceSets {
+    integrationTest {
+        java {
+            srcDir 'src/integrationTest/java'
+        }
+        resources {
+            srcDir 'src/integrationTest/resources'
+        }
+        compileClasspath += main.output + test.output
+        runtimeClasspath += main.output + test.output
+    }
+}
+
+configurations {
+    integrationTestImplementation.extendsFrom testImplementation
+    integrationTestRuntimeOnly.extendsFrom testRuntimeOnly
+}
+
+dependencies {
+    integrationTestImplementation 'org.junit.jupiter:junit-jupiter:5.11.0-M1'
+}
+
+task integrationTest(type: Test) {
+    testClassesDirs = sourceSets.integrationTest.output.classesDirs
+    classpath = sourceSets.integrationTest.runtimeClasspath
+
+    // Optional: run integration tests after unit tests
+    //shouldRunAfter test
+}
+
+// Optional: make 'check' task run integration tests
+//check.dependsOn integrationTest
