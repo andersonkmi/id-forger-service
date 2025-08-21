@@ -87,6 +87,8 @@ configurations {
 
 dependencies {
     integrationTestImplementation 'org.junit.jupiter:junit-jupiter:5.11.0-M1'
+    integrationTestImplementation 'org.springframework.boot:spring-boot-starter-web'
+    integrationTestImplementation 'org.springframework.boot:spring-boot-starter-test'
 }
 
 task integrationTest(type: Test) {
