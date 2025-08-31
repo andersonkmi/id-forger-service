@@ -52,4 +52,12 @@ public class JdbcTemplateDataRepository {
             throw new DatabaseException("Failed to get sequence details", exception);
         }
     }
+
+    void updateSequenceLastValue(@Nonnull String sequenceName, long value) {
+        try {
+            String statement = String.format("select setval('%s', %d)", sequenceName, value);
+        } catch (DataAccessException exception) {
+            throw new DatabaseException("Failed to update sequence last value", exception);
+        }
+    }
 }
