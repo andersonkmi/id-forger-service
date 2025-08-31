@@ -1,5 +1,6 @@
 package org.codecraftlabs.idgenerator.controller;
 
+import org.apache.coyote.Response;
 import org.codecraftlabs.idgenerator.id.Sequence;
 import org.codecraftlabs.idgenerator.id.service.IdNotGeneratedException;
 import org.codecraftlabs.idgenerator.id.service.IdService;
@@ -12,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
@@ -51,6 +53,13 @@ public class IdGeneratorController extends BaseControllerV1 {
             logger.error("Format is invalid", exception);
             throw new ResponseStatusException(BAD_REQUEST, "Format is invalid", exception);
         }
+    }
+
+    @PutMapping(value = "/ids/{seriesName}", produces = APPLICATION_JSON_VALUE,
+            consumes = APPLICATION_JSON_VALUE)
+    public ResponseEntity<IdResponse> changeLastValue(@PathVariable String seriesName,
+                                                      @Nonnull SeriesLastValue seriesLastValue) {
+        return status(OK).body(new IdResponse(String.valueOf(seriesLastValue.getNewLastValue())));
     }
 
     @GetMapping(value = "/ids/{seriesName}/currentValue",
