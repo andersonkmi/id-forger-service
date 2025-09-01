@@ -46,13 +46,13 @@ gradle clean build
 ### 3.2. Run
 
 ```shell
-java -jar ./build/libs/id-generator-1.0.0.jar
+java -jar ./build/libs/id-generator-1.2.0.jar
 ```
 
 ### 3.3. Run with remote debugging enabled 
 
 ```shell
-java -Xdebug -Xrunjdwp:server=y,transport=dt_socket,address=8000,suspend=n -jar ./build/libs/id-generator-1.1.1.jar
+java -Xdebug -Xrunjdwp:server=y,transport=dt_socket,address=8000,suspend=n -jar ./build/libs/id-generator-1.2.0.jar
 ```
 
 ## 4. Running the application and the database using Docker compose
