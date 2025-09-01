@@ -56,6 +56,7 @@ public class JdbcTemplateDataRepository {
     void updateSequenceLastValue(@Nonnull String sequenceName, long value) {
         try {
             String statement = String.format("select setval('%s', %d)", sequenceName, value);
+            this.jdbcTemplate.execute(statement);
         } catch (DataAccessException exception) {
             throw new DatabaseException("Failed to update sequence last value", exception);
         }
