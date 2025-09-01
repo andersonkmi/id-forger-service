@@ -35,6 +35,10 @@ public class UniqueIdRepository {
         return jdbcTemplateDataRepository.getSequenceDetails(schema, getSequenceName(name));
     }
 
+    public void updateSequenceLastValue(@Nonnull String name, long lastValue) {
+        this.jdbcTemplateDataRepository.updateSequenceLastValue(getSequenceName(name), lastValue);
+    }
+
     @Nonnull
     private String getSequenceName(@Nonnull String type) {
         Optional<String> sequenceName = seriesSequenceMapper.getSequenceBySeriesName(type);

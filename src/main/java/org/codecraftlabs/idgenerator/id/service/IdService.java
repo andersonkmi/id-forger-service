@@ -41,6 +41,10 @@ public class IdService {
         return this.idGenerator.getSequenceDetails(sequenceName);
     }
 
+    public void updateSequenceLastValue(@Nonnull String name, long lastValue) {
+        this.idGenerator.updateSequenceLastValue(name, lastValue);
+    }
+
     @Nonnull
     private String getIdGeneratorProcessorType(@CheckForNull String format) {
         return format != null && !format.isBlank() ? format : "plain";

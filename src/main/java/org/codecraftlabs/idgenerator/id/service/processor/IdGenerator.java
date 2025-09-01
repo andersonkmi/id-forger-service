@@ -7,6 +7,7 @@ import org.codecraftlabs.idgenerator.id.repository.DatabaseException;
 import org.codecraftlabs.idgenerator.id.repository.SequenceNotFoundException;
 import org.codecraftlabs.idgenerator.id.repository.UniqueIdRepository;
 import org.codecraftlabs.idgenerator.id.service.SequenceDetailsRetrievalException;
+import org.codecraftlabs.idgenerator.id.service.SequenceLastValueUpdateFailedException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -59,4 +60,11 @@ public class IdGenerator {
         }
     }
 
+    public void updateSequenceLastValue(@Nonnull String name, long lastValue) {
+        try {
+            this.uniqueIdRepository.updateSequenceLastValue(name, lastValue);
+        } catch (DatabaseException exception) {
+            throw new SequenceLastValueUpdateFailedException("Failed to update sequence last value", exception);
+        }
+    }
 }
