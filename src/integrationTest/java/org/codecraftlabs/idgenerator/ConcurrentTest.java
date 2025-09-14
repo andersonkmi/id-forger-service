@@ -3,6 +3,7 @@ package org.codecraftlabs.idgenerator;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
+import javax.annotation.Nonnull;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -21,8 +22,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Tag("integration")
 public class ConcurrentTest {
     private static final String ENDPOINT_URL = "http://localhost:27110/idgenerator/v1/ids/default";
-    private static final int TOTAL_CALLS = 1000;
-    private static final int THREAD_POOL_SIZE = 20;
+    private static final int TOTAL_CALLS = 100000;
+    private static final int THREAD_POOL_SIZE = 100;
 
     @Test
     public void testConcurrentApiCalls() throws InterruptedException, ExecutionException {
@@ -92,7 +93,8 @@ public class ConcurrentTest {
                 String.format("%.2f", (TOTAL_CALLS * 1000.0) / totalDuration));
     }
 
-    private static ApiCallResult makeApiCall(HttpClient client, int callId) {
+    @Nonnull
+    private ApiCallResult makeApiCall(HttpClient client, int callId) {
         long startTime = System.currentTimeMillis();
 
         try {
@@ -119,30 +121,5 @@ public class ConcurrentTest {
             long responseTime = System.currentTimeMillis() - startTime;
             return new ApiCallResult(callId, false, responseTime, e.getMessage(), -1);
         }
-    }
-
-    // Result class to store call results
-    static class ApiCallResult {
-        private final int callId;
-        private final boolean success;
-        private final long responseTime;
-        private final String errorMessage;
-        private final int statusCode;
-
-        public ApiCallResult(int callId, boolean success, long responseTime,
-                             String errorMessage, int statusCode) {
-            this.callId = callId;
-            this.success = success;
-            this.responseTime = responseTime;
-            this.errorMessage = errorMessage;
-            this.statusCode = statusCode;
-        }
-
-        // Getters
-        public int getCallId() { return callId; }
-        public boolean isSuccess() { return success; }
-        public long getResponseTime() { return responseTime; }
-        public String getErrorMessage() { return errorMessage; }
-        public int getStatusCode() { return statusCode; }
     }
 }
