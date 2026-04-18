@@ -6,8 +6,19 @@ import org.springframework.jdbc.core.RowMapper;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
+/**
+ * {@link RowMapper} that maps a {@code pg_sequences} result-set row to a {@link Sequence} object.
+ */
 class SequenceMapper implements RowMapper<Sequence> {
 
+    /**
+     * Maps a single row from {@code pg_sequences} to a {@link Sequence}.
+     *
+     * @param rs     the result set positioned at the current row
+     * @param rowNum the number of the current row
+     * @return a fully populated {@link Sequence}
+     * @throws SQLException if a column value cannot be read
+     */
     @Override
     public Sequence mapRow(ResultSet rs, int rowNum) throws SQLException {
         String schema = rs.getString("schemaname");

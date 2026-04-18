@@ -8,6 +8,11 @@ import org.springframework.stereotype.Repository;
 
 import jakarta.annotation.Nonnull;
 
+/**
+ * Low-level JDBC repository that executes SQL against PostgreSQL sequences.
+ * All {@link org.springframework.dao.DataAccessException} instances are wrapped
+ * in {@link DatabaseException}.
+ */
 @Repository
 public class JdbcTemplateDataRepository {
     private final JdbcTemplate jdbcTemplate;
@@ -17,6 +22,13 @@ public class JdbcTemplateDataRepository {
         this.jdbcTemplate = jdbcTemplate;
     }
 
+    /**
+     * Calls {@code NEXTVAL} on the given sequence and returns the result.
+     *
+     * @param sequenceName the database sequence name
+     * @return the next value
+     * @throws DatabaseException on any database error
+     */
     long getNextSequenceValue(@Nonnull String sequenceName) {
         try {
             String statement = String.format("SELECT NEXTVAL('%s')", sequenceName);
@@ -30,6 +42,13 @@ public class JdbcTemplateDataRepository {
         }
     }
 
+    /**
+     * Reads {@code last_value} from the sequence table without advancing it.
+     *
+     * @param sequenceName the database sequence name
+     * @return the current last value
+     * @throws DatabaseException on any database error
+     */
     long getCurrentSequenceValue(@Nonnull String sequenceName) {
         try {
             String statement = String.format("SELECT last_value from %s", sequenceName);
@@ -43,6 +62,14 @@ public class JdbcTemplateDataRepository {
         }
     }
 
+    /**
+     * Queries {@code pg_sequences} to retrieve full metadata for the given sequence.
+     *
+     * @param schema the database schema (e.g. {@code public})
+     * @param name   the sequence name
+     * @return populated {@link Sequence}
+     * @throws DatabaseException on any database error
+     */
     @Nonnull
     Sequence getSequenceDetails(@Nonnull String schema, @Nonnull String name) {
         try {
@@ -53,6 +80,13 @@ public class JdbcTemplateDataRepository {
         }
     }
 
+    /**
+     * Calls {@code setval} to move the sequence to the specified value.
+     *
+     * @param sequenceName the database sequence name
+     * @param value        the new last value
+     * @throws DatabaseException on any database error
+     */
     void updateSequenceLastValue(@Nonnull String sequenceName, long value) {
         try {
             String statement = String.format("select setval('%s', %d)", sequenceName, value);

@@ -8,6 +8,11 @@ import java.time.Instant;
 
 import static java.lang.String.format;
 
+/**
+ * {@link IdFormatProcessor} that appends the current epoch millisecond timestamp to the ID,
+ * producing identifiers in the format {@code <15-digit-id>-<epoch-millis>}.
+ * Registered as the {@code timestamped} format processor.
+ */
 @Service("timestamped")
 class TimestampedIdGeneratorProcessor implements IdFormatProcessor {
     private final IdGenerator idGenerator;
