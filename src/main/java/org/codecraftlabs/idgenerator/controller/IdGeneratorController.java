@@ -10,16 +10,25 @@ import org.codecraftlabs.idgenerator.id.service.SequenceLastValueUpdateFailedExc
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import jakarta.annotation.Nonnull;
+
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
@@ -32,7 +41,8 @@ import static org.springframework.http.ResponseEntity.status;
  * under {@code /idgenerator/v1/ids}.
  */
 @RestController
-public class IdGeneratorController extends BaseControllerV1 {
+@RequestMapping("/idgenerator/v1")
+public class IdGeneratorController {
     private static final Logger logger = LoggerFactory.getLogger(IdGeneratorController.class);
     private final IdService idService;
 
@@ -132,6 +142,25 @@ public class IdGeneratorController extends BaseControllerV1 {
             logger.error("Series name is invalid", exception);
             throw new ResponseStatusException(NOT_FOUND, "Series name is invalid", exception);
         }
+    }
+
+    /**
+     * Handles bean-validation failures and returns a map of field names to
+     * their corresponding error messages with HTTP 400.
+     *
+     * @param ex the validation exception thrown by Spring MVC
+     * @return map of {@code fieldName -> errorMessage} pairs
+     */
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public Map<String, String> handleValidationExceptions(MethodArgumentNotValidException ex) {
+        Map<String, String> errors = new HashMap<>();
+        ex.getBindingResult().getAllErrors().forEach((error) -> {
+            String fieldName = ((FieldError) error).getField();
+            String errorMessage = error.getDefaultMessage();
+            errors.put(fieldName, errorMessage);
+        });
+        return errors;
     }
 
     @Nonnull
