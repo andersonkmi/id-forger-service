@@ -2,7 +2,6 @@ package org.codecraftlabs.idgenerator.id.repository;
 
 import org.codecraftlabs.idgenerator.id.Sequence;
 import org.codecraftlabs.idgenerator.id.series.SeriesSequenceMapper;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import jakarta.annotation.Nonnull;
@@ -17,7 +16,6 @@ public class UniqueIdRepository {
     private final JdbcTemplateDataRepository jdbcTemplateDataRepository;
     private final SeriesSequenceMapper seriesSequenceMapper;
 
-    @Autowired
     public UniqueIdRepository(@Nonnull JdbcTemplateDataRepository jdbcTemplateDataRepository,
                               @Nonnull SeriesSequenceMapper seriesSequenceMapper) {
         this.jdbcTemplateDataRepository = jdbcTemplateDataRepository;

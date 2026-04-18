@@ -8,7 +8,6 @@ import org.codecraftlabs.idgenerator.id.repository.SequenceNotFoundException;
 import org.codecraftlabs.idgenerator.id.repository.UniqueIdRepository;
 import org.codecraftlabs.idgenerator.id.service.SequenceDetailsRetrievalException;
 import org.codecraftlabs.idgenerator.id.service.SequenceLastValueUpdateFailedException;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import jakarta.annotation.Nonnull;
@@ -23,7 +22,6 @@ import static java.lang.String.valueOf;
 public class IdGenerator {
     private final UniqueIdRepository uniqueIdRepository;
 
-    @Autowired
     public IdGenerator(UniqueIdRepository uniqueIdRepository) {
         this.uniqueIdRepository = uniqueIdRepository;
     }
