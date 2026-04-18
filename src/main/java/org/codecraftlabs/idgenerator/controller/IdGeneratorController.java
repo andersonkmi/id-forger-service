@@ -27,16 +27,32 @@ import static org.springframework.http.HttpStatus.OK;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static org.springframework.http.ResponseEntity.status;
 
+/**
+ * REST controller that exposes ID generation and sequence management endpoints
+ * under {@code /idgenerator/v1/ids}.
+ */
 @RestController
 public class IdGeneratorController extends BaseControllerV1 {
     private static final Logger logger = LoggerFactory.getLogger(IdGeneratorController.class);
     private final IdService idService;
 
+    /**
+     * @param idService service used to generate and manage IDs
+     */
     @Autowired
     public IdGeneratorController(@Nonnull IdService idService) {
         this.idService = idService;
     }
 
+    /**
+     * Generates and returns the next ID for the given series.
+     *
+     * @param seriesName the name of the ID series (e.g. {@code default}, {@code product})
+     * @param format     optional output format ({@code plain}, {@code base64}, {@code prefixed},
+     *                   {@code luhn}, {@code sha256}, {@code timestamped}); defaults to {@code plain}
+     * @return HTTP 200 with the generated ID, 404 if the series is unknown,
+     *         or 400 if the format is invalid or generation fails
+     */
     @GetMapping(value = "/ids/{seriesName}",
             produces = APPLICATION_JSON_VALUE)
     public ResponseEntity<IdResponse> getNextId(@PathVariable String seriesName,
@@ -56,6 +72,13 @@ public class IdGeneratorController extends BaseControllerV1 {
         }
     }
 
+    /**
+     * Updates the last value of a sequence, effectively resetting the next generated ID.
+     *
+     * @param seriesName      the name of the series whose sequence should be updated
+     * @param seriesLastValue request body containing the new last value
+     * @return HTTP 200 with the new last value, or 400 if the update fails
+     */
     @PutMapping(value = "/ids/{seriesName}", produces = APPLICATION_JSON_VALUE,
             consumes = APPLICATION_JSON_VALUE)
     public ResponseEntity<IdResponse> changeLastValue(@PathVariable String seriesName,
@@ -69,6 +92,12 @@ public class IdGeneratorController extends BaseControllerV1 {
         }
     }
 
+    /**
+     * Returns the current (last generated) value for the given series without advancing the sequence.
+     *
+     * @param seriesName the name of the series
+     * @return HTTP 200 with the current value, 404 if the series is unknown, or 400 on error
+     */
     @GetMapping(value = "/ids/{seriesName}/currentValue",
             produces = APPLICATION_JSON_VALUE)
     public ResponseEntity<IdResponse> getCurrentId(@PathVariable String seriesName) {
@@ -84,6 +113,12 @@ public class IdGeneratorController extends BaseControllerV1 {
         }
     }
 
+    /**
+     * Retrieves full metadata for the sequence backing the given series.
+     *
+     * @param seriesName the name of the series
+     * @return HTTP 200 with {@link Sequence} details, 404 if the series is unknown, or 400 on error
+     */
     @GetMapping(value = "/ids/{seriesName}/details",
             produces = APPLICATION_JSON_VALUE)
     public ResponseEntity<Sequence> getSequenceDetails(@PathVariable String seriesName) {

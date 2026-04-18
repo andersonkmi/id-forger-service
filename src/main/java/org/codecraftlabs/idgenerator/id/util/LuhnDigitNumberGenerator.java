@@ -5,9 +5,19 @@ import org.springframework.stereotype.Component;
 
 import jakarta.annotation.Nonnull;
 
+/**
+ * Computes the Luhn check digit for a partial number and appends it to produce
+ * a number that passes Luhn validation.
+ */
 @Component
 @Scope("prototype")
 public class LuhnDigitNumberGenerator {
+    /**
+     * Calculates the Luhn check digit for {@code partialNumber} and appends it.
+     *
+     * @param partialNumber the number without its check digit
+     * @return the complete number with the Luhn check digit appended
+     */
     @Nonnull
     public String generatorLuhnCheckValidNumber(@Nonnull String partialNumber) {
         int luhnDigit = calculateCheckDigit(partialNumber);

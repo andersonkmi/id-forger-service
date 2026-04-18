@@ -6,6 +6,11 @@ import org.springframework.stereotype.Service;
 
 import jakarta.annotation.Nonnull;
 
+/**
+ * {@link IdFormatProcessor} that appends a Luhn check digit to the generated numeric ID.
+ * The resulting number passes the standard Luhn validation algorithm.
+ * Registered as the {@code luhn} format processor.
+ */
 @Service("luhn")
 class LuhnCheckedIdGeneratorProcessor implements IdFormatProcessor {
     private final IdGenerator idGenerator;

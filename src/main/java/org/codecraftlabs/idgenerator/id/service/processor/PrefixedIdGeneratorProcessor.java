@@ -10,6 +10,11 @@ import java.util.Optional;
 
 import static java.lang.String.format;
 
+/**
+ * {@link IdFormatProcessor} that prepends the series prefix and zero-pads the ID to
+ * 15 digits, producing identifiers such as {@code STD000000000012345}.
+ * Registered as the {@code prefixed} format processor.
+ */
 @Service("prefixed")
 class PrefixedIdGeneratorProcessor implements IdFormatProcessor {
     private final IdGenerator idGenerator;

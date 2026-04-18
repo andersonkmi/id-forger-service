@@ -26,6 +26,12 @@ import jakarta.annotation.Nonnull;
 @Component
 @Scope("prototype")
 public class LuhnValidator {
+    /**
+     * Validates whether the given number passes the Luhn check.
+     *
+     * @param number the full number string including the check digit
+     * @return {@code true} if the digit sum is divisible by 10; {@code false} otherwise
+     */
     public boolean isValid(@Nonnull String number) {
         int sum = 0;
         boolean alternate = false;

@@ -8,12 +8,28 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import jakarta.annotation.Nonnull;
 
+/**
+ * Spring Boot entry point for the ID Generator service.
+ * Configures CORS for the {@code /idgenerator} endpoint.
+ */
 @SpringBootApplication
 public class MainApplication {
+    /**
+     * Starts the Spring Boot application.
+     *
+     * @param args command-line arguments
+     */
     public static void main(String[] args) {
         SpringApplication.run(MainApplication.class, args);
     }
 
+    /**
+     * Registers a {@link WebMvcConfigurer} that allows cross-origin requests to
+     * {@code /idgenerator} from any origin, supporting all HTTP methods and a
+     * specific set of headers (Content-Type, Authorization, API key headers).
+     *
+     * @return the CORS configurer bean
+     */
     @Bean
     public WebMvcConfigurer corsConfigurer() {
         return new WebMvcConfigurer() {

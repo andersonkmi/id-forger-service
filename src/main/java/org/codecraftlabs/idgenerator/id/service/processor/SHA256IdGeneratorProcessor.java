@@ -10,6 +10,11 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
+/**
+ * {@link IdFormatProcessor} that computes the SHA-256 hash of the numeric ID string
+ * and returns it as a lowercase hexadecimal string (64 characters).
+ * Registered as the {@code sha256} format processor.
+ */
 @Service("sha256")
 class SHA256IdGeneratorProcessor implements IdFormatProcessor {
     private final IdGenerator idGenerator;
