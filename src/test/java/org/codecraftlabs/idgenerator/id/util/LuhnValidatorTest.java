@@ -1,7 +1,8 @@
 package org.codecraftlabs.idgenerator.id.util;
 
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -13,13 +14,15 @@ public class LuhnValidatorTest {
         this.luhnValidator = new LuhnValidator();
     }
 
-    @Test
-    public void when_number_is_valid_should_return_true() {
-        assertThat(this.luhnValidator.isValid("18")).isTrue();
+    @ParameterizedTest
+    @ValueSource(strings = {"18", "00", "1206", "1008", "79927398713"})
+    public void valid_luhn_numbers_should_return_true(String number) {
+        assertThat(luhnValidator.isValid(number)).isTrue();
     }
 
-    @Test
-    public void when_number_is_invalid_should_return_false() {
-        assertThat(this.luhnValidator.isValid("123")).isFalse();
+    @ParameterizedTest
+    @ValueSource(strings = {"123", "100", "1234", "79927398714"})
+    public void invalid_luhn_numbers_should_return_false(String number) {
+        assertThat(luhnValidator.isValid(number)).isFalse();
     }
 }

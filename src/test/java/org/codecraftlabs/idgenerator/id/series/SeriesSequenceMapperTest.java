@@ -14,28 +14,37 @@ public class SeriesSequenceMapperTest {
     }
 
     @Test
-    public void validateAllEnumEntriesAreLoaded() {
-        var values = SeriesToSequence.values();
-        for (SeriesToSequence item : values) {
+    public void all_enum_entries_should_be_loaded_into_mapper() {
+        for (SeriesToSequence item : SeriesToSequence.values()) {
             assertThat(seriesSequenceMapper.getSequenceBySeriesName(item.getSeriesName())).isPresent();
         }
     }
 
     @Test
-    public void when_series_name_is_not_present_should_return_empty() {
-        var result = this.seriesSequenceMapper.getSequenceBySeriesName("fake");
-        assertThat(result).isEmpty();
+    public void default_series_should_map_to_default_sequence() {
+        assertThat(seriesSequenceMapper.getSequenceBySeriesName("default"))
+                .hasValue("default_sequence");
     }
 
     @Test
-    public void when_series_name_is_present_should_return_value() {
-        var result = this.seriesSequenceMapper.getSequenceBySeriesName("default");
-        assertThat(result).isPresent();
+    public void product_series_should_map_to_product_sequence() {
+        assertThat(seriesSequenceMapper.getSequenceBySeriesName("product"))
+                .hasValue("product_sequence");
     }
 
     @Test
-    public void when_product_series_selected_should_return_linked_sequence() {
-        var result = this.seriesSequenceMapper.getSequenceBySeriesName("product");
-        assertThat(result).isPresent();
+    public void unknown_series_name_should_return_empty() {
+        assertThat(seriesSequenceMapper.getSequenceBySeriesName("fake")).isEmpty();
+    }
+
+    @Test
+    public void empty_series_name_should_return_empty() {
+        assertThat(seriesSequenceMapper.getSequenceBySeriesName("")).isEmpty();
+    }
+
+    @Test
+    public void series_name_lookup_should_be_case_sensitive() {
+        assertThat(seriesSequenceMapper.getSequenceBySeriesName("Default")).isEmpty();
+        assertThat(seriesSequenceMapper.getSequenceBySeriesName("DEFAULT")).isEmpty();
     }
 }
