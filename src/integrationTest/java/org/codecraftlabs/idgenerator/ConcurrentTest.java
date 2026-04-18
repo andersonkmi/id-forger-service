@@ -3,7 +3,7 @@ package org.codecraftlabs.idgenerator;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
-import javax.annotation.Nonnull;
+import jakarta.annotation.Nonnull;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;

@@ -1,6 +1,6 @@
 package org.codecraftlabs.idgenerator.id.service.processor;
 
-import javax.annotation.Nonnull;
+import jakarta.annotation.Nonnull;
 
 public interface IdFormatProcessor {
     @Nonnull

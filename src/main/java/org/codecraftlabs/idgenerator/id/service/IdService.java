@@ -6,8 +6,8 @@ import org.codecraftlabs.idgenerator.id.service.processor.IdGenerator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 import java.util.Optional;
 
 @Service
@@ -24,7 +24,7 @@ public class IdService {
 
     @Nonnull
     public String generateId(@Nonnull String seriesName,
-                             @CheckForNull String format) {
+                             @Nullable String format) {
         String type = getIdGeneratorProcessorType(format);
         Optional<IdFormatProcessor> processor = idGenerationServiceFactory.getProcessor(type);
         IdFormatProcessor idProcessor = processor.orElseThrow(() -> new InvalidFormatException("Invalid format requested"));
@@ -46,7 +46,7 @@ public class IdService {
     }
 
     @Nonnull
-    private String getIdGeneratorProcessorType(@CheckForNull String format) {
+    private String getIdGeneratorProcessorType(@Nullable String format) {
         return format != null && !format.isBlank() ? format : "plain";
     }
 }
