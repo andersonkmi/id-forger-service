@@ -3,7 +3,7 @@ package org.codecraftlabs.idgenerator.id.util;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.Nonnull;
+import jakarta.annotation.Nonnull;
 
 @Component
 @Scope("prototype")

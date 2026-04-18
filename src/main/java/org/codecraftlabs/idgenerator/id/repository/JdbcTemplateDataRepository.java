@@ -6,7 +6,7 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
-import javax.annotation.Nonnull;
+import jakarta.annotation.Nonnull;
 
 @Repository
 public class JdbcTemplateDataRepository {
