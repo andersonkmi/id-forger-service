@@ -1,7 +1,6 @@
 package org.codecraftlabs.idgenerator.id.service;
 
 import org.codecraftlabs.idgenerator.id.service.processor.IdFormatProcessor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import jakarta.annotation.Nonnull;
@@ -20,7 +19,6 @@ import static java.util.Optional.ofNullable;
 public class IdGenerationServiceFactory {
     private final Map<String, IdFormatProcessor> processors;
 
-    @Autowired
     IdGenerationServiceFactory(Map<String, IdFormatProcessor> processors) {
         this.processors = processors;
     }

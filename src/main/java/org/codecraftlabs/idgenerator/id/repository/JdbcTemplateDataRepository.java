@@ -1,7 +1,6 @@
 package org.codecraftlabs.idgenerator.id.repository;
 
 import org.codecraftlabs.idgenerator.id.Sequence;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -17,7 +16,6 @@ import jakarta.annotation.Nonnull;
 public class JdbcTemplateDataRepository {
     private final JdbcTemplate jdbcTemplate;
 
-    @Autowired
     JdbcTemplateDataRepository(@Nonnull JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }

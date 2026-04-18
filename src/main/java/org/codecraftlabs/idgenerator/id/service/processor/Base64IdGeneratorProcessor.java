@@ -1,6 +1,5 @@
 package org.codecraftlabs.idgenerator.id.service.processor;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import jakarta.annotation.Nonnull;
@@ -14,7 +13,6 @@ import java.util.Base64;
 class Base64IdGeneratorProcessor implements IdFormatProcessor {
     private final IdGenerator idGenerator;
 
-    @Autowired
     Base64IdGeneratorProcessor(@Nonnull IdGenerator idGenerator) {
         this.idGenerator = idGenerator;
     }

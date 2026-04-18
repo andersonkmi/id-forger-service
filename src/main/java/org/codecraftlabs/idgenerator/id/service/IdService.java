@@ -3,7 +3,6 @@ package org.codecraftlabs.idgenerator.id.service;
 import org.codecraftlabs.idgenerator.id.Sequence;
 import org.codecraftlabs.idgenerator.id.service.processor.IdFormatProcessor;
 import org.codecraftlabs.idgenerator.id.service.processor.IdGenerator;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import jakarta.annotation.Nonnull;
@@ -19,7 +18,6 @@ public class IdService {
     private final IdGenerationServiceFactory idGenerationServiceFactory;
     private final IdGenerator idGenerator;
 
-    @Autowired
     public IdService(@Nonnull IdGenerationServiceFactory idGenerationServiceFactory,
                      @Nonnull IdGenerator idGenerator) {
         this.idGenerationServiceFactory = idGenerationServiceFactory;
