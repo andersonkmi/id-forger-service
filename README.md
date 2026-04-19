@@ -1,7 +1,6 @@
-# Id generator service #
+# ID Forger Service#
 
-This is a small service that can generate unique ids in a concurrent fashion. The idea is quite simple: use database sequences
-to generate the numbers.
+ID Forger Service is targeted to generate unique ids in a concurrent fashion based on a simple principle: database sequences.
 
 Distinct database sequences can be used for specific purposes so we can generate unique ids for different purposes without
 interfering with each other.
@@ -46,13 +45,13 @@ gradle clean build
 ### 3.2. Run
 
 ```shell
-java -jar ./build/libs/id-generator-1.2.0.jar
+java -jar ./build/libs/id-forger-service-1.2.0.jar
 ```
 
 ### 3.3. Run with remote debugging enabled 
 
 ```shell
-java -Xdebug -Xrunjdwp:server=y,transport=dt_socket,address=8000,suspend=n -jar ./build/libs/id-generator-1.2.0.jar
+java -Xdebug -Xrunjdwp:server=y,transport=dt_socket,address=8000,suspend=n -jar ./build/libs/id-forger-service-1.2.0.jar
 ```
 
 ## 4. Running the application and the database using Docker compose
