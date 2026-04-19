@@ -28,8 +28,6 @@ class JdbcTemplateDataRepositoryTest {
     @InjectMocks
     private JdbcTemplateDataRepository repository;
 
-    // --- getNextSequenceValue ---
-
     @Test
     void should_return_next_sequence_value() {
         when(jdbcTemplate.queryForObject("SELECT NEXTVAL('my_seq')", Long.class)).thenReturn(42L);
@@ -54,8 +52,6 @@ class JdbcTemplateDataRepositoryTest {
                 .withMessage("Failed to get the next sequence value")
                 .withCauseInstanceOf(DataAccessException.class);
     }
-
-    // --- getCurrentSequenceValue ---
 
     @Test
     void should_return_current_sequence_value() {
@@ -82,8 +78,6 @@ class JdbcTemplateDataRepositoryTest {
                 .withCauseInstanceOf(DataAccessException.class);
     }
 
-    // --- getSequenceDetails ---
-
     @Test
     void should_return_sequence_details() {
         Sequence expected = new Sequence("public", "my_seq", 1, 1, Long.MAX_VALUE, 1, 1, false, 10);
@@ -104,8 +98,6 @@ class JdbcTemplateDataRepositoryTest {
                 .withMessage("Failed to get sequence details")
                 .withCauseInstanceOf(DataAccessException.class);
     }
-
-    // --- updateSequenceLastValue ---
 
     @Test
     void should_execute_setval_statement() {
