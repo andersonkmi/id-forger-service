@@ -52,8 +52,9 @@ jacocoTestReport {
 
 bootJar {
 	mainClass = 'org.codecraftlabs.idgenerator.MainApplication'
+	archiveBaseName = 'id-forger-service'
 	manifest {
-		attributes('Implementation-Title': 'Id generator service', 'Implementation-Version': version)
+		attributes('Implementation-Title': 'ID Forger Service', 'Implementation-Version': version)
 	}
 }
 
