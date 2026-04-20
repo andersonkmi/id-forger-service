@@ -3,7 +3,7 @@ package org.codecraftlabs.idgenerator.id.service.processor;
 import org.codecraftlabs.idgenerator.id.Sequence;
 import org.codecraftlabs.idgenerator.id.repository.DatabaseException;
 import org.codecraftlabs.idgenerator.id.repository.SequenceNotFoundException;
-import org.codecraftlabs.idgenerator.id.repository.UniqueIdRepository;
+import org.codecraftlabs.idgenerator.id.repository.UniqueIdMapperRepository;
 import org.codecraftlabs.idgenerator.id.service.IdNotGeneratedException;
 import org.codecraftlabs.idgenerator.id.service.InvalidSeriesException;
 import org.codecraftlabs.idgenerator.id.service.SequenceDetailsRetrievalException;
@@ -26,7 +26,7 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 public class IdGeneratorTest {
     @Mock
-    private UniqueIdRepository uniqueIdRepository;
+    private UniqueIdMapperRepository uniqueIdRepository;
 
     @InjectMocks
     private IdGenerator idGenerator;
