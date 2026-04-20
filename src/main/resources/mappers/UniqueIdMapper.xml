@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="org.codecraftlabs.idgenerator.id.repository.UniqueIdMapper">
+    <select id="getNextId" resultType="Long">
+        SELECT NEXTVAL(#{seriesName});
+    </select>
+
+    <select id="getCurrentSequenceValue" resultType="Long">
+        SELECT last_value from #{seriesName}
+    </select>
+
+    <select id="getSequenceDetails" resultType="org.codecraftlabs.idgenerator.id.Sequence">
+        SELECT schemaname schema, sequencename name, start_value, min_value, max_value, increment_by, cycle, cache_size, last_value from pg_sequences where schemaname = #{schema} and sequencename = ${name};
+    </select>
+
+    <update id="updateSequenceLastValue">
+        select setval(#{name}, #{lastValue})
+    </update>
+</mapper>
