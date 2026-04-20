@@ -9,17 +9,36 @@ import org.springframework.stereotype.Component;
 
 import java.util.Optional;
 
+/**
+ * Repository component that wraps {@link UniqueIdMapper} to provide
+ * higher-level sequence operations with series-name resolution and
+ * consistent exception translation.
+ */
 @Component
 public class UniqueIdMapperRepository {
     private final UniqueIdMapper uniqueIdMapper;
     private final SeriesSequenceMapper seriesSequenceMapper;
 
+    /**
+     * Constructs a new {@code UniqueIdMapperRepository}.
+     *
+     * @param uniqueIdMapper       the MyBatis mapper for sequence operations
+     * @param seriesSequenceMapper the mapper used to resolve series names to sequence names
+     */
     public UniqueIdMapperRepository(@Nonnull UniqueIdMapper uniqueIdMapper,
                                     @Nonnull SeriesSequenceMapper seriesSequenceMapper) {
         this.uniqueIdMapper = uniqueIdMapper;
         this.seriesSequenceMapper = seriesSequenceMapper;
     }
 
+    /**
+     * Retrieves the next unique ID for the given series by advancing the
+     * underlying database sequence.
+     *
+     * @param seriesName the logical series name
+     * @return the next unique ID
+     * @throws DatabaseException if the database operation fails
+     */
     public long getNextId(@Nonnull String seriesName) {
         try {
             String sequenceName = getSequenceName(seriesName);
@@ -29,6 +48,14 @@ public class UniqueIdMapperRepository {
         }
     }
 
+    /**
+     * Retrieves the current ID for the given series without advancing
+     * the underlying database sequence.
+     *
+     * @param seriesName the logical series name
+     * @return the current sequence value
+     * @throws DatabaseException if the database operation fails
+     */
     public long getCurrentId(@Nonnull String seriesName) {
         try {
             String sequenceName = getSequenceName(seriesName);
@@ -38,11 +65,27 @@ public class UniqueIdMapperRepository {
         }
     }
 
+    /**
+     * Retrieves the details of the database sequence associated with the
+     * given series name and schema.
+     *
+     * @param schema the database schema containing the sequence
+     * @param name   the logical series name
+     * @return a {@link Sequence} object containing the sequence metadata
+     */
     @Nonnull
     public Sequence getSequenceDetails(@Nonnull String schema, @Nonnull String name) {
         return uniqueIdMapper.getSequenceDetails(schema, getSequenceName(name));
     }
 
+    /**
+     * Updates the last value of the database sequence associated with the
+     * given series name.
+     *
+     * @param name      the logical series name
+     * @param lastValue the new last value to set
+     * @throws SequenceLastValueUpdateFailedException if the update fails
+     */
     public void updateSequenceLastValue(@Nonnull String name, long lastValue) {
         try {
             String sequenceName = getSequenceName(name);
@@ -52,6 +95,13 @@ public class UniqueIdMapperRepository {
         }
     }
 
+    /**
+     * Resolves a logical series name to its corresponding database sequence name.
+     *
+     * @param type the logical series name
+     * @return the resolved database sequence name
+     * @throws SequenceNotFoundException if no sequence is mapped to the given series name
+     */
     @Nonnull
     private String getSequenceName(@Nonnull String type) {
         Optional<String> sequenceName = seriesSequenceMapper.getSequenceBySeriesName(type);
