@@ -1,4 +1,4 @@
-# ID Forger Service#
+# ID Forger Service
 
 ID Forger Service is targeted to generate unique ids in a concurrent fashion based on a simple principle: database sequences.
 
