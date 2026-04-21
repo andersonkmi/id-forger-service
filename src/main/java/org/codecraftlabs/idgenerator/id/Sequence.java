@@ -6,13 +6,13 @@ package org.codecraftlabs.idgenerator.id;
 public class Sequence {
     private final String schema;
     private final String name;
-    private final long startValue;
-    private final long minValue;
-    private final long maxValue;
-    private final long incrementBy;
-    private final long cacheSize;
-    private final boolean cycle;
-    private final long lastValue;
+    private final Long startValue;
+    private final Long minValue;
+    private final Long maxValue;
+    private final Long incrementBy;
+    private final Long cacheSize;
+    private final Boolean cycle;
+    private final Long lastValue;
 
     /**
      * Constructs a fully populated Sequence.
@@ -27,7 +27,7 @@ public class Sequence {
      * @param cycle       {@code true} if the sequence wraps around after reaching its max value
      * @param lastValue   most recently generated value
      */
-    public Sequence(String schema, String name, long startValue, long minValue, long maxValue, long incrementBy, long cacheSize, boolean cycle, long lastValue) {
+    public Sequence(String schema, String name, Long startValue, Long minValue, Long maxValue, Long incrementBy, Long cacheSize, Boolean cycle, Long lastValue) {
         this.schema = schema;
         this.name = name;
         this.startValue = startValue;
@@ -50,37 +50,37 @@ public class Sequence {
     }
 
     /** @return value the sequence started at */
-    public long getStartValue() {
+    public Long getStartValue() {
         return startValue;
     }
 
     /** @return minimum allowed value */
-    public long getMinValue() {
+    public Long getMinValue() {
         return minValue;
     }
 
     /** @return maximum allowed value */
-    public long getMaxValue() {
+    public Long getMaxValue() {
         return maxValue;
     }
 
     /** @return step size between consecutive values */
-    public long getIncrementBy() {
+    public Long getIncrementBy() {
         return incrementBy;
     }
 
     /** @return number of values pre-allocated in memory by the database */
-    public long getCacheSize() {
+    public Long getCacheSize() {
         return cacheSize;
     }
 
     /** @return {@code true} if the sequence wraps around after reaching its maximum value */
-    public boolean isCycle() {
+    public Boolean isCycle() {
         return cycle;
     }
 
     /** @return most recently generated value */
-    public long getLastValue() {
+    public Long getLastValue() {
         return lastValue;
     }
 }

@@ -88,7 +88,7 @@ class UniqueIdMapperRepositoryTest {
 
     @Test
     void should_return_sequence_details() {
-        Sequence expected = new Sequence("public", "default_sequence", 1, 1, Long.MAX_VALUE, 1, 1, false, 10);
+        Sequence expected = new Sequence("public", "default_sequence", 1L, 1L, Long.MAX_VALUE, 1L, 1L, false, 10L);
         when(seriesSequenceMapper.getSequenceBySeriesName("default")).thenReturn(Optional.of("default_sequence"));
         when(uniqueIdMapper.getSequenceDetails("public", "default_sequence")).thenReturn(expected);
 
