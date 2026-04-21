@@ -101,7 +101,7 @@ public class IdGeneratorTest {
 
     @Test
     public void should_return_sequence_metadata_from_repository() {
-        Sequence expected = new Sequence("public", "default_sequence", 1, 1, Long.MAX_VALUE, 1, 1, false, 10);
+        Sequence expected = new Sequence("public", "default_sequence", 1L, 1L, Long.MAX_VALUE, 1L, 1L, false, 10L);
         when(uniqueIdRepository.getSequenceDetails(eq("public"), eq("default"))).thenReturn(expected);
         assertThat(idGenerator.getSequenceDetails("default")).isSameAs(expected);
     }

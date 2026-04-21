@@ -75,7 +75,12 @@ public class UniqueIdMapperRepository {
      */
     @Nonnull
     public Sequence getSequenceDetails(@Nonnull String schema, @Nonnull String name) {
-        return uniqueIdMapper.getSequenceDetails(schema, getSequenceName(name));
+        try {
+            String sequenceName = getSequenceName(name);
+            return uniqueIdMapper.getSequenceDetails(schema, sequenceName);
+        } catch (DataAccessException exception) {
+            throw new DatabaseException("Failed to retrieve sequence details", exception);
+        }
     }
 
     /**

@@ -11,8 +11,21 @@
         SELECT last_value from #{seriesName}
     </select>
 
-    <select id="getSequenceDetails" resultType="org.codecraftlabs.idgenerator.id.Sequence">
-        SELECT schemaname schema, sequencename name, start_value, min_value, max_value, increment_by, cycle, cache_size, last_value from pg_sequences where schemaname = #{schema} and sequencename = ${name};
+    <resultMap id="sequenceResultMap" type="org.codecraftlabs.idgenerator.id.Sequence">
+        <constructor>
+            <arg column="schema" javaType="String"/>
+            <arg column="name" javaType="String"/>
+            <arg column="start_value" javaType="Long"/>
+            <arg column="min_value" javaType="Long"/>
+            <arg column="max_value" javaType="Long"/>
+            <arg column="increment_by" javaType="Long"/>
+            <arg column="cache_size" javaType="Long"/>
+            <arg column="cycle" javaType="Boolean"/>
+            <arg column="last_value" javaType="Long"/>
+        </constructor>
+    </resultMap>
+    <select id="getSequenceDetails" resultMap="sequenceResultMap">
+        SELECT schemaname schema, sequencename name, start_value, min_value, max_value, increment_by, cycle, cache_size, last_value from pg_sequences where schemaname = #{schema} and sequencename = #{name};
     </select>
 
     <update id="updateSequenceLastValue">
