@@ -1,5 +1,6 @@
 package org.codecraftlabs.idgenerator.id.service;
 
+import org.codecraftlabs.idgenerator.controller.SequenceDataResponse;
 import org.codecraftlabs.idgenerator.id.Sequence;
 import org.codecraftlabs.idgenerator.id.service.processor.IdFormatProcessor;
 import org.codecraftlabs.idgenerator.id.service.processor.IdGenerator;
@@ -66,9 +67,10 @@ public class IdServiceTest {
 
     @Test
     public void should_return_sequence_details_from_id_generator() {
-        Sequence expected = new Sequence("public", "default_sequence", 1L, 1L, Long.MAX_VALUE, 1L, 1L, false, 10L);
-        when(idGenerator.getSequenceDetails("default")).thenReturn(expected);
-        assertThat(idService.getSequenceDetails("default")).isSameAs(expected);
+        Sequence sequence = new Sequence("public", "default_sequence", 1L, 1L, Long.MAX_VALUE, 1L, 1L, false, 10L);
+        SequenceDataResponse expected = new SequenceDataResponse("public", "default_sequence", 1L, 1L, Long.MAX_VALUE, 1L, 1L, false, 10L);
+        when(idGenerator.getSequenceDetails("default")).thenReturn(sequence);
+        assertThat(idService.getSequenceDetails("default")).isEqualTo(expected);
     }
 
     @Test
