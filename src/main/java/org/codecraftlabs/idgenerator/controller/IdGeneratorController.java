@@ -1,6 +1,5 @@
 package org.codecraftlabs.idgenerator.controller;
 
-import org.codecraftlabs.idgenerator.id.Sequence;
 import org.codecraftlabs.idgenerator.id.service.IdNotGeneratedException;
 import org.codecraftlabs.idgenerator.id.service.IdService;
 import org.codecraftlabs.idgenerator.id.service.InvalidFormatException;
@@ -125,13 +124,13 @@ public class IdGeneratorController {
      * Retrieves full metadata for the sequence backing the given series.
      *
      * @param seriesName the name of the series
-     * @return HTTP 200 with {@link Sequence} details, 404 if the series is unknown, or 400 on error
+     * @return HTTP 200 with {@link SequenceDataResponse} details, 404 if the series is unknown, or 400 on error
      */
     @GetMapping(value = "/ids/{seriesName}/details",
             produces = APPLICATION_JSON_VALUE)
-    public ResponseEntity<Sequence> getSequenceDetails(@PathVariable String seriesName) {
+    public ResponseEntity<SequenceDataResponse> getSequenceDetails(@PathVariable String seriesName) {
         try {
-            Sequence sequenceDetails = this.idService.getSequenceDetails(seriesName);
+            SequenceDataResponse sequenceDetails = this.idService.getSequenceDetails(seriesName);
             return status(OK).body(sequenceDetails);
         } catch (SequenceDetailsRetrievalException exception) {
             logger.error("Could not retrieve sequence details", exception);

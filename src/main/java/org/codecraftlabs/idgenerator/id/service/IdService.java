@@ -1,5 +1,6 @@
 package org.codecraftlabs.idgenerator.id.service;
 
+import org.codecraftlabs.idgenerator.controller.SequenceDataResponse;
 import org.codecraftlabs.idgenerator.id.Sequence;
 import org.codecraftlabs.idgenerator.id.service.processor.IdFormatProcessor;
 import org.codecraftlabs.idgenerator.id.service.processor.IdGenerator;
@@ -61,8 +62,9 @@ public class IdService {
      * @return the {@link Sequence} metadata
      */
     @Nonnull
-    public Sequence getSequenceDetails(@Nonnull String sequenceName) {
-        return this.idGenerator.getSequenceDetails(sequenceName);
+    public SequenceDataResponse getSequenceDetails(@Nonnull String sequenceName) {
+        var sequence = this.idGenerator.getSequenceDetails(sequenceName);
+        return convert(sequence);
     }
 
     /**
@@ -78,5 +80,18 @@ public class IdService {
     @Nonnull
     private String getIdGeneratorProcessorType(@Nullable String format) {
         return format != null && !format.isBlank() ? format : "plain";
+    }
+
+    @Nonnull
+    private SequenceDataResponse convert(@Nonnull Sequence sequence) {
+        return new SequenceDataResponse(sequence.getSchema(),
+                sequence.getName(),
+                sequence.getStartValue(),
+                sequence.getMinValue(),
+                sequence.getMaxValue(),
+                sequence.getIncrementBy(),
+                sequence.getCacheSize(),
+                sequence.isCycle(),
+                sequence.getLastValue());
     }
 }
