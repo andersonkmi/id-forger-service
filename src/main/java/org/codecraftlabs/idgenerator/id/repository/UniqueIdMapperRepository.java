@@ -2,12 +2,10 @@ package org.codecraftlabs.idgenerator.id.repository;
 
 import jakarta.annotation.Nonnull;
 import org.codecraftlabs.idgenerator.id.Sequence;
-import org.codecraftlabs.idgenerator.id.series.SeriesSequenceMapper;
+import org.codecraftlabs.idgenerator.id.series.SeriesToSequence;
 import org.codecraftlabs.idgenerator.id.service.SequenceLastValueUpdateFailedException;
 import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Component;
-
-import java.util.Optional;
 
 /**
  * Repository component that wraps {@link UniqueIdMapper} to provide
@@ -17,18 +15,14 @@ import java.util.Optional;
 @Component
 public class UniqueIdMapperRepository {
     private final UniqueIdMapper uniqueIdMapper;
-    private final SeriesSequenceMapper seriesSequenceMapper;
 
     /**
      * Constructs a new {@code UniqueIdMapperRepository}.
      *
-     * @param uniqueIdMapper       the MyBatis mapper for sequence operations
-     * @param seriesSequenceMapper the mapper used to resolve series names to sequence names
+     * @param uniqueIdMapper the MyBatis mapper for sequence operations
      */
-    public UniqueIdMapperRepository(@Nonnull UniqueIdMapper uniqueIdMapper,
-                                    @Nonnull SeriesSequenceMapper seriesSequenceMapper) {
+    public UniqueIdMapperRepository(@Nonnull UniqueIdMapper uniqueIdMapper) {
         this.uniqueIdMapper = uniqueIdMapper;
-        this.seriesSequenceMapper = seriesSequenceMapper;
     }
 
     /**
@@ -109,10 +103,8 @@ public class UniqueIdMapperRepository {
      */
     @Nonnull
     private String getSequenceName(@Nonnull String type) {
-        Optional<String> sequenceName = seriesSequenceMapper.getSequenceBySeriesName(type);
-        if (sequenceName.isEmpty()) {
-            throw new SequenceNotFoundException("Invalid sequence name");
-        }
-        return sequenceName.get();
+        return SeriesToSequence.findByName(type)
+                .map(SeriesToSequence::getSequenceName)
+                .orElseThrow(() -> new SequenceNotFoundException("Invalid sequence name"));
     }
 }
