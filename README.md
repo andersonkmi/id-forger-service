@@ -164,12 +164,12 @@ curl -s http://localhost:27110/idgenerator/v1/ids/default/details
 
 ### Reset a sequence
 
-`PUT /idgenerator/v1/ids/{seriesName}`
+`PATCH /idgenerator/v1/ids/{seriesName}`
 
 Sets the sequence's last value so the next generated ID starts after the provided number. Useful for migrations or manual corrections.
 
 ```bash
-curl -s -X PUT http://localhost:27110/idgenerator/v1/ids/default \
+curl -s -X PATCH http://localhost:27110/idgenerator/v1/ids/default \
   -H "Content-Type: application/json" \
   -d '{"newLastValue": 1000}'
 ```
