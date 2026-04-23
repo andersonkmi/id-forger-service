@@ -14,6 +14,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -86,7 +87,7 @@ public class IdGeneratorController {
      * @param seriesLastValue request body containing the new last value
      * @return HTTP 200 with the new last value, or 400 if the update fails
      */
-    @PutMapping(value = "/ids/{seriesName}", produces = APPLICATION_JSON_VALUE,
+    @PatchMapping(value = "/ids/{seriesName}", produces = APPLICATION_JSON_VALUE,
             consumes = APPLICATION_JSON_VALUE)
     public ResponseEntity<IdResponse> changeLastValue(@PathVariable String seriesName,
                                                       @RequestBody SeriesLastValue seriesLastValue) {
