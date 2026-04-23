@@ -22,10 +22,10 @@ public interface UniqueIdMapper {
      * Retrieves the current value of the specified database sequence
      * without advancing it.
      *
-     * @param seriesName the name of the database sequence
+     * @param sequenceName the name of the database sequence
      * @return the current value of the sequence
      */
-    long getCurrentSequenceValue(@Nonnull String seriesName);
+    Long getCurrentSequenceValue(@Nonnull String sequenceName);
     /**
      * Retrieves the details of a database sequence, including its metadata.
      *

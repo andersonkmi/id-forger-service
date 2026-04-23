@@ -8,7 +8,7 @@
     </select>
 
     <select id="getCurrentSequenceValue" resultType="Long">
-        SELECT last_value from #{seriesName}
+        SELECT last_value FROM pg_sequences WHERE sequencename = #{sequenceName};
     </select>
 
     <resultMap id="sequenceResultMap" type="org.codecraftlabs.idgenerator.id.Sequence">

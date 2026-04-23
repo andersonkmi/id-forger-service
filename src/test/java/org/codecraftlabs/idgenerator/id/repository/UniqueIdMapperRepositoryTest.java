@@ -54,6 +54,14 @@ class UniqueIdMapperRepositoryTest {
     }
 
     @Test
+    void should_throw_database_exception_when_sequence_has_no_current_value() {
+        when(uniqueIdMapper.getCurrentSequenceValue("default_sequence")).thenReturn(null);
+        assertThatExceptionOfType(DatabaseException.class)
+                .isThrownBy(() -> repository.getCurrentId("default"))
+                .withMessage("Sequence 'default_sequence' has no current value (never called)");
+    }
+
+    @Test
     void should_throw_sequence_not_found_when_series_unknown_for_current_id() {
         assertThatExceptionOfType(SequenceNotFoundException.class)
                 .isThrownBy(() -> repository.getCurrentId("unknown"))

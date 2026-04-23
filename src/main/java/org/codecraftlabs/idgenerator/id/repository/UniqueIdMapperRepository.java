@@ -53,7 +53,11 @@ public class UniqueIdMapperRepository {
     public long getCurrentId(@Nonnull String seriesName) {
         try {
             String sequenceName = getSequenceName(seriesName);
-            return uniqueIdMapper.getCurrentSequenceValue(sequenceName);
+            Long currentValue = uniqueIdMapper.getCurrentSequenceValue(sequenceName);
+            if (currentValue == null) {
+                throw new DatabaseException("Sequence '" + sequenceName + "' has no current value (never called)");
+            }
+            return currentValue;
         } catch (DataAccessException exception) {
             throw new DatabaseException("Failed to get the current sequence value", exception);
         }
