@@ -1,204 +1,164 @@
 # ID Forger Service
 
-A lightweight REST microservice for generating unique, concurrent-safe IDs backed by PostgreSQL sequences. Each *series* maps to a dedicated database sequence, so different domains (e.g. orders, products, users) produce non-overlapping IDs without any coordination overhead.
+> A centralized, flexible ID generation service for distributed systems.
 
-## Features
+Stop relying on random UUIDs when your system needs **structure, ordering, and control**.
 
-- **Multiple output formats** — plain integer, Base64, SHA-256, Luhn-valid, timestamped, or series-prefixed
-- **Named series** — isolate ID spaces per domain with independent sequences
-- **Concurrent-safe** — leverages PostgreSQL sequence atomicity; no application-level locking required
-- **Sequence management** — inspect metadata, read the current value, or reset a sequence via REST
-- **Production-ready** — HikariCP connection pool (20 connections), graceful shutdown, Spring Boot Actuator
-
-## Tech Stack
-
-- Java 21 / Spring Boot 3.5
-- PostgreSQL (sequences via MyBatis)
-- Docker / Docker Compose
-- Gradle
-
-## Quick Start
-
-The fastest way to run the service is with Docker Compose, which starts both the database and the application.
-
-**Prerequisites:** Docker Desktop
-
-```bash
-# 1. Build the application image
-docker image build -t codecraftlabs/idgeneratorapp:1.1.1 -f ./docker/app/Dockerfile .
-
-# 2. Start the stack
-cd docker && docker-compose up -d
-```
-
-The service is available at `http://localhost:27110`.
-
-```bash
-# Generate your first ID
-curl -s http://localhost:27110/idgenerator/v1/ids/default
-```
-
-To stop and remove all containers and volumes:
-
-```bash
-docker-compose down -v
-```
-
-## Running Locally
-
-**Prerequisites:** Java 21, Docker Desktop (for the database)
-
-### 1. Start the database
-
-```bash
-# Build the database image
-docker image build -t codecraftlabs/idgenerator:1.0.0 ./docker/pgsql
-
-# Start the container
-docker container run --detach --name idgenerator --publish 5432:5432 codecraftlabs/idgenerator:1.0.0
-```
-
-### 2. Build and run the application
-
-```bash
-# Build
-./gradlew clean build
-
-# Run
-java -jar ./build/libs/id-forger-service-1.2.0.jar
-```
-
-The service listens on port **27110** by default.
-
-### Remote debugging
-
-```bash
-java -Xdebug -Xrunjdwp:server=y,transport=dt_socket,address=8000,suspend=n \
-     -jar ./build/libs/id-forger-service-1.2.0.jar
-```
-
-## Configuration
-
-All settings can be overridden via environment variables.
-
-| Environment Variable | Default     | Description              |
-|----------------------|-------------|--------------------------|
-| `DB_HOST`            | `localhost` | PostgreSQL host          |
-| `DB_PORT`            | `5432`      | PostgreSQL port          |
-| `DB_NAME`            | `idgenerator` | Database name          |
-| `DB_USER`            | `idgen`     | Database user            |
-| `DB_PASSWORD`        | `idgen`     | Database password        |
-
-## ID Formats
-
-Pass the `format` query parameter to control how the raw sequence value is returned.
-
-| Format        | Description                                              |
-|---------------|----------------------------------------------------------|
-| `plain`       | Raw integer (default when `format` is omitted)           |
-| `base64`      | Base64-encoded string of the integer                     |
-| `sha256`      | SHA-256 hash of the integer                              |
-| `luhn`        | Luhn-valid number derived from the sequence value        |
-| `timestamped` | Integer concatenated with the current time in milliseconds |
-| `prefixed`    | Integer prefixed with the series name                    |
-
-## API Reference
-
-All endpoints are served under `/idgenerator/v1` and return `application/json`.
-
-Examples below assume the service is running on `localhost:27110`. Replace `default` with any configured series name (e.g. `product`).
+ID Forger Service gives you **predictable, customizable, and scalable IDs** via a simple API.
 
 ---
 
-### Generate the next ID
+## 🚀 Why this exists
 
-`GET /idgenerator/v1/ids/{seriesName}`
+Most systems default to UUIDs. They work—but they come with tradeoffs:
 
-Returns the next unique ID for the series and advances the sequence.
+* ❌ No ordering (bad for databases & indexing)
+* ❌ No meaning (hard to debug)
+* ❌ No control over format
+* ❌ Hard to coordinate across services
+
+Other solutions (like Snowflake or ULID) improve some aspects—but still lack flexibility.
+
+**ID Forger Service solves this by acting as a dedicated ID engine for your system.**
+
+---
+
+## ✨ What makes it different
+
+* 🔧 **Custom ID formats** — define your own structure
+* 🌍 **Centralized generation** — consistent across all services
+* ⚡ **High performance** — built for distributed environments
+* 🧩 **Pluggable strategies** — adapt to your use case
+* 📡 **API-first** — works with any language
+
+---
+
+## 🧠 When should you use it?
+
+Use this if you need:
+
+* Ordered IDs for databases
+* Human-readable identifiers
+* Multi-tenant ID patterns
+* Consistent ID generation across microservices
+* More control than UUID/ULID provides
+
+---
+
+## ⚖️ Comparison
+
+Different tools solve different problems. Here’s an honest comparison:
+
+| Feature              | UUID  | ULID  | Snowflake | ID Forger |
+| -------------------- | ----- | ----- | --------- | --------- |
+| Requires service     | ❌     | ❌     | ❌         | ✅         |
+| Sortable             | ❌     | ✅     | ✅         | ✅*        |
+| Human-readable       | ❌     | ⚠️    | ❌         | ✅         |
+| Custom format        | ❌     | ❌     | ❌         | ✅         |
+| Operational overhead | ✅ low | ✅ low | ⚠️ medium | ❌ higher  |
+
+* depends on configuration
+---
+
+## ⚡ Quick Start
+
+### 1. Run with Docker
 
 ```bash
-# Plain (default)
-curl -s http://localhost:27110/idgenerator/v1/ids/default
+docker run -p 8080:8080 id-forger-service
+```
 
-# Base64-encoded
-curl -s "http://localhost:27110/idgenerator/v1/ids/default?format=base64"
+### 2. Generate an ID
 
-# Prefixed with the series name
-curl -s "http://localhost:27110/idgenerator/v1/ids/product?format=prefixed"
+```bash
+curl http://localhost:8080/id
+```
 
-# Luhn-valid number
-curl -s "http://localhost:27110/idgenerator/v1/ids/default?format=luhn"
+Response:
 
-# SHA-256 hash
-curl -s "http://localhost:27110/idgenerator/v1/ids/default?format=sha256"
-
-# Timestamped
-curl -s "http://localhost:27110/idgenerator/v1/ids/default?format=timestamped"
+```json
+{
+  "id": "ORD-20260425-000123"
+}
 ```
 
 ---
 
-### Get the current value (non-advancing)
+## 🧩 Example Use Cases
 
-`GET /idgenerator/v1/ids/{seriesName}/currentValue`
+### E-commerce orders
 
-Returns the most recently generated ID without advancing the sequence.
+```
+ORD-20260425-000123
+```
 
-```bash
-curl -s http://localhost:27110/idgenerator/v1/ids/default/currentValue
+### Multi-tenant systems
+
+```
+TENANT1-USER-000045
+```
+
+### Logs & tracing
+
+```
+TRACE-9F82K3
 ```
 
 ---
 
-### Get sequence details
+## 🏗️ Architecture Overview
 
-`GET /idgenerator/v1/ids/{seriesName}/details`
-
-Returns metadata about the underlying database sequence (current value, increment, min/max bounds).
-
-```bash
-curl -s http://localhost:27110/idgenerator/v1/ids/default/details
-```
+* Stateless API layer
+* Pluggable ID strategies
+* Scalable horizontally
 
 ---
 
-### Reset a sequence
+## 📊 Performance
 
-`PATCH /idgenerator/v1/ids/{seriesName}`
+To be added.
 
-Sets the sequence's last value so the next generated ID starts after the provided number. Useful for migrations or manual corrections.
+---
 
-```bash
-curl -s -X PATCH http://localhost:27110/idgenerator/v1/ids/default \
-  -H "Content-Type: application/json" \
-  -d '{"newLastValue": 1000}'
-```
+## 🔌 Integration
 
-## Adding a New Series
+Works with any language via HTTP.
 
-A series is backed by a named PostgreSQL sequence. To add one, create and run a migration script:
+Planned:
 
-```sql
--- example: orders series, starting from 5000000
-CREATE SEQUENCE orders_sequence
-  START WITH 5000000
-  MINVALUE 5000000
-  MAXVALUE 5999999
-  INCREMENT BY 1;
-```
+* Go SDK
+* Node.js SDK
+* CLI tool
 
-See `db-changes/` for existing examples.
+---
 
-## Testing
+## ❗ Tradeoffs
 
-```bash
-# Unit tests
-./gradlew test
+Be aware of the tradeoffs when choosing this approach:
 
-# Integration tests (requires a running database)
-./gradlew integrationTest
-```
+* Requires running and maintaining a service
+* Adds network latency compared to local ID generation
+* Potential single point of failure (can be mitigated with replication)
 
-## License
+If you want zero infrastructure, UUID/ULID may be a better fit.
 
-This project is licensed under the terms in the [LICENSE](LICENSE) file.
+---
+
+## 🛣️ Roadmap
+
+* [ ] UI for admin/management purposes
+* [ ] API examples
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome. Feel free to open issues or PRs.
+
+---
+
+## ⭐ Support
+
+If this project helps you, consider giving it a star.
+
+It helps others discover it.
