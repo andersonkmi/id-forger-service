@@ -2,7 +2,6 @@ package org.codecraftlabs.idgenerator.controller;
 
 import org.codecraftlabs.idgenerator.id.service.IdNotGeneratedException;
 import org.codecraftlabs.idgenerator.id.service.IdService;
-import org.codecraftlabs.idgenerator.id.service.InvalidFormatException;
 import org.codecraftlabs.idgenerator.id.service.InvalidSeriesException;
 import org.codecraftlabs.idgenerator.id.service.SequenceDetailsRetrievalException;
 import org.codecraftlabs.idgenerator.id.service.SequenceLastValueUpdateFailedException;
@@ -16,10 +15,8 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
@@ -36,48 +33,22 @@ import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static org.springframework.http.ResponseEntity.status;
 
 /**
- * REST controller that exposes ID generation and sequence management endpoints
- * under {@code /idgenerator/v1/ids}.
+ * REST controller for sequence administration endpoints: read-only inspection
+ * (current value, sequence metadata) and mutating operations (resetting the
+ * last value). Kept separate from the ID generation hot path so that admin
+ * traffic cannot interfere with high-volume ID retrieval.
  */
 @RestController
 @RequestMapping("/idgenerator/v1")
-public class IdGeneratorController {
-    private static final Logger logger = LoggerFactory.getLogger(IdGeneratorController.class);
+public class SequenceAdminController {
+    private static final Logger logger = LoggerFactory.getLogger(SequenceAdminController.class);
     private final IdService idService;
 
     /**
-     * @param idService service used to generate and manage IDs
+     * @param idService service used to inspect and manage sequences
      */
-    public IdGeneratorController(@Nonnull IdService idService) {
+    public SequenceAdminController(@Nonnull IdService idService) {
         this.idService = idService;
-    }
-
-    /**
-     * Generates and returns the next ID for the given series.
-     *
-     * @param seriesName the name of the ID series (e.g. {@code default}, {@code product})
-     * @param format     optional output format ({@code plain}, {@code base64}, {@code prefixed},
-     *                   {@code luhn}, {@code sha256}, {@code timestamped}); defaults to {@code plain}
-     * @return HTTP 200 with the generated ID, 404 if the series is unknown,
-     *         or 400 if the format is invalid or generation fails
-     */
-    @GetMapping(value = "/ids/{seriesName}",
-            produces = APPLICATION_JSON_VALUE)
-    public ResponseEntity<IdResponse> getNextId(@PathVariable String seriesName,
-                                                @RequestParam(value = "format", required = false) String format) {
-        try {
-            String id = idService.generateId(seriesName, format);
-            return generateResponse(id);
-        } catch (IdNotGeneratedException exception) {
-            logger.error("Id not generated", exception);
-            throw new ResponseStatusException(BAD_REQUEST, "Id not generated", exception);
-        } catch (InvalidSeriesException exception) {
-            logger.error("Series name is invalid", exception);
-            throw new ResponseStatusException(NOT_FOUND, "Series name is invalid", exception);
-        } catch (InvalidFormatException exception) {
-            logger.error("Format is invalid", exception);
-            throw new ResponseStatusException(BAD_REQUEST, "Format is invalid", exception);
-        }
     }
 
     /**
@@ -111,7 +82,7 @@ public class IdGeneratorController {
     public ResponseEntity<IdResponse> getCurrentId(@PathVariable String seriesName) {
         try {
             String currentValue = this.idService.getCurrentValue(seriesName);
-            return generateResponse(currentValue);
+            return status(OK).body(new IdResponse(currentValue));
         } catch (IdNotGeneratedException exception) {
             logger.error("Could not retrieve current value", exception);
             throw new ResponseStatusException(BAD_REQUEST, "Could not retrieve current value", exception);
@@ -159,10 +130,5 @@ public class IdGeneratorController {
             errors.put(fieldName, errorMessage);
         });
         return errors;
-    }
-
-    @Nonnull
-    private ResponseEntity<IdResponse> generateResponse(@Nonnull String id) {
-        return status(OK).body(new IdResponse(id));
     }
 }
