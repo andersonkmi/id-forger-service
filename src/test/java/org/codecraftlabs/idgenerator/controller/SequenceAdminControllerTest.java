@@ -1,5 +1,8 @@
 package org.codecraftlabs.idgenerator.controller;
 
+import io.github.resilience4j.bulkhead.BulkheadFullException;
+import io.github.resilience4j.bulkhead.BulkheadConfig;
+import io.github.resilience4j.bulkhead.Bulkhead;
 import org.codecraftlabs.idgenerator.id.service.IdNotGeneratedException;
 import org.codecraftlabs.idgenerator.id.service.IdService;
 import org.codecraftlabs.idgenerator.id.service.InvalidSeriesException;
@@ -102,6 +105,20 @@ public class SequenceAdminControllerTest {
                 .andExpect(jsonPath("$.id").value("500"));
 
         verify(idService).updateSequenceLastValue("default", 500L);
+    }
+
+    @Test
+    public void should_return_503_when_admin_bulkhead_is_full() {
+        Bulkhead bulkhead = Bulkhead.of("admin",
+                BulkheadConfig.custom().maxConcurrentCalls(1).maxWaitDuration(java.time.Duration.ZERO).build());
+        bulkhead.tryAcquirePermission();
+
+        BulkheadFullException ex = BulkheadFullException.createBulkheadFullException(bulkhead);
+
+        var response = new SequenceAdminController(idService).handleBulkheadFull(ex);
+
+        org.assertj.core.api.Assertions.assertThat(response.getStatusCode().value()).isEqualTo(503);
+        org.assertj.core.api.Assertions.assertThat(response.getHeaders().getFirst("Retry-After")).isEqualTo("1");
     }
 
     @Test

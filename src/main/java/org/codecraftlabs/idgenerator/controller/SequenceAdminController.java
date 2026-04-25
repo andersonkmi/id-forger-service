@@ -1,5 +1,7 @@
 package org.codecraftlabs.idgenerator.controller;
 
+import io.github.resilience4j.bulkhead.BulkheadFullException;
+import io.github.resilience4j.bulkhead.annotation.Bulkhead;
 import org.codecraftlabs.idgenerator.id.service.IdNotGeneratedException;
 import org.codecraftlabs.idgenerator.id.service.IdService;
 import org.codecraftlabs.idgenerator.id.service.InvalidSeriesException;
@@ -58,6 +60,7 @@ public class SequenceAdminController {
      * @param seriesLastValue request body containing the new last value
      * @return HTTP 200 with the new last value, or 400 if the update fails
      */
+    @Bulkhead(name = "admin", type = Bulkhead.Type.SEMAPHORE)
     @PatchMapping(value = "/ids/{seriesName}", produces = APPLICATION_JSON_VALUE,
             consumes = APPLICATION_JSON_VALUE)
     public ResponseEntity<IdResponse> changeLastValue(@PathVariable String seriesName,
@@ -77,6 +80,7 @@ public class SequenceAdminController {
      * @param seriesName the name of the series
      * @return HTTP 200 with the current value, 404 if the series is unknown, or 400 on error
      */
+    @Bulkhead(name = "admin", type = Bulkhead.Type.SEMAPHORE)
     @GetMapping(value = "/ids/{seriesName}/currentValue",
             produces = APPLICATION_JSON_VALUE)
     public ResponseEntity<IdResponse> getCurrentId(@PathVariable String seriesName) {
@@ -98,6 +102,7 @@ public class SequenceAdminController {
      * @param seriesName the name of the series
      * @return HTTP 200 with {@link SequenceDataResponse} details, 404 if the series is unknown, or 400 on error
      */
+    @Bulkhead(name = "admin", type = Bulkhead.Type.SEMAPHORE)
     @GetMapping(value = "/ids/{seriesName}/details",
             produces = APPLICATION_JSON_VALUE)
     public ResponseEntity<SequenceDataResponse> getSequenceDetails(@PathVariable String seriesName) {
@@ -111,6 +116,22 @@ public class SequenceAdminController {
             logger.error("Series name is invalid", exception);
             throw new ResponseStatusException(NOT_FOUND, "Series name is invalid", exception);
         }
+    }
+
+    /**
+     * Handles bulkhead saturation: when the admin endpoints are already serving the
+     * configured maximum number of concurrent requests, additional ones are rejected
+     * fast with HTTP 503 instead of being queued (and potentially starving the hot path).
+     *
+     * @param ex the bulkhead-full exception thrown by Resilience4j
+     * @return the fast-fail response with a {@code Retry-After} hint
+     */
+    @ExceptionHandler(BulkheadFullException.class)
+    public ResponseEntity<String> handleBulkheadFull(BulkheadFullException ex) {
+        logger.warn("Admin bulkhead full, rejecting request", ex);
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .header("Retry-After", "1")
+                .body("Admin endpoints are temporarily saturated, please retry shortly");
     }
 
     /**
