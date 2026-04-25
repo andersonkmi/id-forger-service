@@ -127,7 +127,7 @@ Works with any language via HTTP.
 Planned:
 
 * Go SDK
-* Node.js SDK
+* Java SDK
 * CLI tool
 
 ---
