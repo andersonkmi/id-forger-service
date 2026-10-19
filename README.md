@@ -62,13 +62,59 @@ Different tools solve different problems. Here’s an honest comparison:
 
 ## ⚡ Quick Start
 
-### 1. Run with Docker
+### 1. Start PostgreSQL
+
+The service requires a PostgreSQL database. A ready-to-use image is defined in `docker/pgsql/Dockerfile` (based on `postgres:17.5`). On first startup it runs `docker/pgsql/init.sql`, which creates the `default_sequence` and `product_sequence` sequences.
+
+Build the image:
+
+```bash
+docker build -t codecraftlabs/idgenerator:1.0.0 docker/pgsql
+```
+
+Create and start the container:
+
+```bash
+docker run -d \
+  --name id-generator-db \
+  -p 5432:5432 \
+  -v id-generator-pgdata:/var/lib/postgresql/data \
+  codecraftlabs/idgenerator:1.0.0
+```
+
+Default connection settings (matching `application.properties`):
+
+| Setting  | Value         |
+| -------- | ------------- |
+| Host     | `localhost`   |
+| Port     | `5432`        |
+| Database | `idgenerator` |
+| User     | `idgen`       |
+| Password | `idgen`       |
+
+These can be overridden for the application via the `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER` and `DB_PASSWORD` environment variables.
+
+Verify the database:
+
+```bash
+docker exec -it id-generator-db psql -U idgen -d idgenerator -c "SELECT sequencename FROM pg_sequences;"
+```
+
+### 2. Run the application
+
+Locally with Gradle:
+
+```bash
+./gradlew bootRun
+```
+
+Or with Docker:
 
 ```bash
 docker run -p 8080:8080 id-forger-service
 ```
 
-### 2. Generate an ID
+### 3. Generate an ID
 
 ```bash
 curl http://localhost:8080/id
@@ -81,6 +127,17 @@ Response:
   "id": "ORD-20260425-000123"
 }
 ```
+
+### Managing the database container
+
+```bash
+docker stop id-generator-db     # stop
+docker start id-generator-db    # start again
+docker rm -f id-generator-db    # remove the container
+docker volume rm id-generator-pgdata  # remove data (init.sql runs again on next creation)
+```
+
+> **Note:** `init.sql` only runs when the data volume is empty. To pick up changes to it, remove the volume and recreate the container.
 
 ---
 
