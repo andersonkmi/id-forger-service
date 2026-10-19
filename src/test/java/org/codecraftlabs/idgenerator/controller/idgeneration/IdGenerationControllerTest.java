@@ -1,4 +1,4 @@
-package org.codecraftlabs.idgenerator.controller;
+package org.codecraftlabs.idgenerator.controller.idgeneration;
 
 import org.codecraftlabs.idgenerator.id.service.IdNotGeneratedException;
 import org.codecraftlabs.idgenerator.id.service.IdService;

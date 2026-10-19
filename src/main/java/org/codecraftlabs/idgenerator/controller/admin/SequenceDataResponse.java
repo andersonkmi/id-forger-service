@@ -1,4 +1,4 @@
-package org.codecraftlabs.idgenerator.controller;
+package org.codecraftlabs.idgenerator.controller.admin;
 
 /**
  * Response carrying sequence metadata returned by the {@code /details} endpoint.

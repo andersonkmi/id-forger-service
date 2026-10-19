@@ -1,4 +1,4 @@
-package org.codecraftlabs.idgenerator.controller;
+package org.codecraftlabs.idgenerator.controller.admin;
 
 /**
  * Request body used when updating the last value of a sequence via the PUT endpoint.
