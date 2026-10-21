@@ -3,7 +3,6 @@ package org.codecraftlabs.idgenerator.id.service;
 import org.codecraftlabs.idgenerator.controller.admin.SequenceDataResponse;
 import org.codecraftlabs.idgenerator.id.Sequence;
 import org.codecraftlabs.idgenerator.id.service.processor.IdFormatProcessor;
-import org.codecraftlabs.idgenerator.id.service.processor.IdGenerator;
 import org.springframework.stereotype.Service;
 
 import jakarta.annotation.Nonnull;
@@ -17,12 +16,12 @@ import java.util.Optional;
 @Service
 public class IdService {
     private final IdGenerationServiceFactory idGenerationServiceFactory;
-    private final IdGenerator idGenerator;
+    private final IdSequenceService idSequenceService;
 
     public IdService(@Nonnull IdGenerationServiceFactory idGenerationServiceFactory,
-                     @Nonnull IdGenerator idGenerator) {
+                     @Nonnull IdSequenceService idSequenceService) {
         this.idGenerationServiceFactory = idGenerationServiceFactory;
-        this.idGenerator = idGenerator;
+        this.idSequenceService = idSequenceService;
     }
 
     /**
@@ -52,7 +51,7 @@ public class IdService {
      */
     @Nonnull
     public String getCurrentValue(@Nonnull String seriesName) {
-        return idGenerator.getCurrentValue(seriesName);
+        return idSequenceService.getCurrentValue(seriesName);
     }
 
     /**
@@ -63,7 +62,7 @@ public class IdService {
      */
     @Nonnull
     public SequenceDataResponse getSequenceDetails(@Nonnull String sequenceName) {
-        var sequence = this.idGenerator.getSequenceDetails(sequenceName);
+        var sequence = this.idSequenceService.getSequenceDetails(sequenceName);
         return convert(sequence);
     }
 
@@ -74,7 +73,7 @@ public class IdService {
      * @param lastValue the new last value to set
      */
     public void updateSequenceLastValue(@Nonnull String name, long lastValue) {
-        this.idGenerator.updateSequenceLastValue(name, lastValue);
+        this.idSequenceService.updateSequenceLastValue(name, lastValue);
     }
 
     @Nonnull
