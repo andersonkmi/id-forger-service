@@ -1,8 +1,8 @@
 package org.codecraftlabs.idgenerator.controller.idgeneration;
 
 import org.codecraftlabs.idgenerator.controller.IdResponse;
+import org.codecraftlabs.idgenerator.id.service.IdGenerationService;
 import org.codecraftlabs.idgenerator.id.service.IdNotGeneratedException;
-import org.codecraftlabs.idgenerator.id.service.IdService;
 import org.codecraftlabs.idgenerator.id.service.InvalidFormatException;
 import org.codecraftlabs.idgenerator.id.service.InvalidSeriesException;
 import org.slf4j.Logger;
@@ -32,13 +32,13 @@ import static org.springframework.http.ResponseEntity.status;
 @RequestMapping("/idgenerator/v1")
 public class IdGenerationController {
     private static final Logger logger = LoggerFactory.getLogger(IdGenerationController.class);
-    private final IdService idService;
+    private final IdGenerationService idGenerationService;
 
     /**
-     * @param idService service used to generate IDs
+     * @param idGenerationService service used to generate IDs
      */
-    public IdGenerationController(@Nonnull IdService idService) {
-        this.idService = idService;
+    public IdGenerationController(@Nonnull IdGenerationService idGenerationService) {
+        this.idGenerationService = idGenerationService;
     }
 
     /**
@@ -55,7 +55,7 @@ public class IdGenerationController {
     public ResponseEntity<IdResponse> getNextId(@PathVariable String seriesName,
                                                 @RequestParam(value = "format", required = false) String format) {
         try {
-            String id = idService.generateId(seriesName, format);
+            String id = idGenerationService.generateId(seriesName, format);
             return status(OK).body(new IdResponse(id));
         } catch (IdNotGeneratedException exception) {
             logger.error("Id not generated", exception);

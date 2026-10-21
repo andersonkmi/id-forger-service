@@ -4,8 +4,8 @@ import io.github.resilience4j.bulkhead.BulkheadFullException;
 import io.github.resilience4j.bulkhead.annotation.Bulkhead;
 import org.codecraftlabs.idgenerator.controller.IdResponse;
 import org.codecraftlabs.idgenerator.id.service.IdNotGeneratedException;
-import org.codecraftlabs.idgenerator.id.service.IdService;
 import org.codecraftlabs.idgenerator.id.service.InvalidSeriesException;
+import org.codecraftlabs.idgenerator.id.service.SequenceAdminService;
 import org.codecraftlabs.idgenerator.id.service.SequenceDetailsRetrievalException;
 import org.codecraftlabs.idgenerator.id.service.SequenceLastValueUpdateFailedException;
 import org.slf4j.Logger;
@@ -45,13 +45,13 @@ import static org.springframework.http.ResponseEntity.status;
 @RequestMapping("/idgenerator/v1")
 public class SequenceAdminController {
     private static final Logger logger = LoggerFactory.getLogger(SequenceAdminController.class);
-    private final IdService idService;
+    private final SequenceAdminService sequenceAdminService;
 
     /**
-     * @param idService service used to inspect and manage sequences
+     * @param sequenceAdminService service used to inspect and manage sequences
      */
-    public SequenceAdminController(@Nonnull IdService idService) {
-        this.idService = idService;
+    public SequenceAdminController(@Nonnull SequenceAdminService sequenceAdminService) {
+        this.sequenceAdminService = sequenceAdminService;
     }
 
     /**
@@ -67,7 +67,7 @@ public class SequenceAdminController {
     public ResponseEntity<IdResponse> changeLastValue(@PathVariable String seriesName,
                                                       @RequestBody SeriesLastValue seriesLastValue) {
         try {
-            this.idService.updateSequenceLastValue(seriesName, seriesLastValue.getNewLastValue());
+            this.sequenceAdminService.updateSequenceLastValue(seriesName, seriesLastValue.getNewLastValue());
             return status(OK).body(new IdResponse(String.valueOf(seriesLastValue.getNewLastValue())));
         } catch (SequenceLastValueUpdateFailedException exception) {
             logger.error("Could not update the last value", exception);
@@ -86,7 +86,7 @@ public class SequenceAdminController {
             produces = APPLICATION_JSON_VALUE)
     public ResponseEntity<IdResponse> getCurrentId(@PathVariable String seriesName) {
         try {
-            String currentValue = this.idService.getCurrentValue(seriesName);
+            String currentValue = this.sequenceAdminService.getCurrentValue(seriesName);
             return status(OK).body(new IdResponse(currentValue));
         } catch (IdNotGeneratedException exception) {
             logger.error("Could not retrieve current value", exception);
@@ -108,7 +108,7 @@ public class SequenceAdminController {
             produces = APPLICATION_JSON_VALUE)
     public ResponseEntity<SequenceDataResponse> getSequenceDetails(@PathVariable String seriesName) {
         try {
-            SequenceDataResponse sequenceDetails = this.idService.getSequenceDetails(seriesName);
+            SequenceDataResponse sequenceDetails = this.sequenceAdminService.getSequenceDetails(seriesName);
             return status(OK).body(sequenceDetails);
         } catch (SequenceDetailsRetrievalException exception) {
             logger.error("Could not retrieve sequence details", exception);

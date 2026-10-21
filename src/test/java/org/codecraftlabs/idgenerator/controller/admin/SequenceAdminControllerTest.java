@@ -5,8 +5,8 @@ import io.github.resilience4j.bulkhead.BulkheadConfig;
 import io.github.resilience4j.bulkhead.Bulkhead;
 import org.codecraftlabs.idgenerator.controller.IdResponse;
 import org.codecraftlabs.idgenerator.id.service.IdNotGeneratedException;
-import org.codecraftlabs.idgenerator.id.service.IdService;
 import org.codecraftlabs.idgenerator.id.service.InvalidSeriesException;
+import org.codecraftlabs.idgenerator.id.service.SequenceAdminService;
 import org.codecraftlabs.idgenerator.id.service.SequenceDetailsRetrievalException;
 import org.codecraftlabs.idgenerator.id.service.SequenceLastValueUpdateFailedException;
 import org.junit.jupiter.api.BeforeEach;
@@ -45,19 +45,19 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ExtendWith(MockitoExtension.class)
 public class SequenceAdminControllerTest {
     @Mock
-    private IdService idService;
+    private SequenceAdminService sequenceAdminService;
 
     private MockMvc mockMvc;
 
     @BeforeEach
     public void setUp() {
-        SequenceAdminController controller = new SequenceAdminController(idService);
+        SequenceAdminController controller = new SequenceAdminController(sequenceAdminService);
         mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
     }
 
     @Test
     public void should_return_current_value_for_known_series() throws Exception {
-        when(idService.getCurrentValue("default")).thenReturn("100");
+        when(sequenceAdminService.getCurrentValue("default")).thenReturn("100");
 
         mockMvc.perform(get("/idgenerator/v1/ids/{seriesName}/currentValue", "default"))
                 .andExpect(status().isOk())
@@ -66,7 +66,7 @@ public class SequenceAdminControllerTest {
 
     @Test
     public void should_return_404_when_current_value_series_is_invalid() throws Exception {
-        when(idService.getCurrentValue("unknown"))
+        when(sequenceAdminService.getCurrentValue("unknown"))
                 .thenThrow(new InvalidSeriesException("Invalid series name provided"));
 
         mockMvc.perform(get("/idgenerator/v1/ids/{seriesName}/currentValue", "unknown"))
@@ -75,7 +75,7 @@ public class SequenceAdminControllerTest {
 
     @Test
     public void should_return_400_when_current_value_lookup_fails() throws Exception {
-        when(idService.getCurrentValue("default"))
+        when(sequenceAdminService.getCurrentValue("default"))
                 .thenThrow(new IdNotGeneratedException("Failed to get current value", new RuntimeException()));
 
         mockMvc.perform(get("/idgenerator/v1/ids/{seriesName}/currentValue", "default"))
@@ -86,7 +86,7 @@ public class SequenceAdminControllerTest {
     public void should_return_sequence_details_for_known_series() throws Exception {
         SequenceDataResponse details = new SequenceDataResponse("public", "default_sequence",
                 1L, 1L, Long.MAX_VALUE, 1L, 1L, false, 10L);
-        when(idService.getSequenceDetails("default")).thenReturn(details);
+        when(sequenceAdminService.getSequenceDetails("default")).thenReturn(details);
 
         mockMvc.perform(get("/idgenerator/v1/ids/{seriesName}/details", "default"))
                 .andExpect(status().isOk())
@@ -97,7 +97,7 @@ public class SequenceAdminControllerTest {
 
     @Test
     public void should_return_404_when_details_series_is_invalid() throws Exception {
-        when(idService.getSequenceDetails("unknown"))
+        when(sequenceAdminService.getSequenceDetails("unknown"))
                 .thenThrow(new InvalidSeriesException("Invalid series name provided"));
 
         mockMvc.perform(get("/idgenerator/v1/ids/{seriesName}/details", "unknown"))
@@ -106,7 +106,7 @@ public class SequenceAdminControllerTest {
 
     @Test
     public void should_return_400_when_details_retrieval_fails() throws Exception {
-        when(idService.getSequenceDetails("default"))
+        when(sequenceAdminService.getSequenceDetails("default"))
                 .thenThrow(new SequenceDetailsRetrievalException("Boom", new RuntimeException()));
 
         mockMvc.perform(get("/idgenerator/v1/ids/{seriesName}/details", "default"))
@@ -121,7 +121,7 @@ public class SequenceAdminControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value("500"));
 
-        verify(idService).updateSequenceLastValue("default", 500L);
+        verify(sequenceAdminService).updateSequenceLastValue("default", 500L);
     }
 
     @Test
@@ -132,7 +132,7 @@ public class SequenceAdminControllerTest {
 
         BulkheadFullException ex = BulkheadFullException.createBulkheadFullException(bulkhead);
 
-        var response = new SequenceAdminController(idService).handleBulkheadFull(ex);
+        var response = new SequenceAdminController(sequenceAdminService).handleBulkheadFull(ex);
 
         org.assertj.core.api.Assertions.assertThat(response.getStatusCode().value()).isEqualTo(503);
         org.assertj.core.api.Assertions.assertThat(response.getHeaders().getFirst("Retry-After")).isEqualTo("1");
@@ -141,7 +141,7 @@ public class SequenceAdminControllerTest {
     @Test
     public void should_return_400_when_last_value_update_fails() throws Exception {
         doThrow(new SequenceLastValueUpdateFailedException("nope", new RuntimeException()))
-                .when(idService).updateSequenceLastValue("default", 500L);
+                .when(sequenceAdminService).updateSequenceLastValue("default", 500L);
 
         mockMvc.perform(patch("/idgenerator/v1/ids/{seriesName}", "default")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -152,7 +152,7 @@ public class SequenceAdminControllerTest {
     @Test
     public void should_include_reason_when_last_value_update_fails() throws Exception {
         doThrow(new SequenceLastValueUpdateFailedException("nope", new RuntimeException()))
-                .when(idService).updateSequenceLastValue("default", 500L);
+                .when(sequenceAdminService).updateSequenceLastValue("default", 500L);
 
         mockMvc.perform(patch("/idgenerator/v1/ids/{seriesName}", "default")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -171,7 +171,7 @@ public class SequenceAdminControllerTest {
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.id").value("1451000500"));
 
-        verify(idService).updateSequenceLastValue("product", 1451000500L);
+        verify(sequenceAdminService).updateSequenceLastValue("product", 1451000500L);
     }
 
     @Test
@@ -182,7 +182,7 @@ public class SequenceAdminControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value("0"));
 
-        verify(idService).updateSequenceLastValue("default", 0L);
+        verify(sequenceAdminService).updateSequenceLastValue("default", 0L);
     }
 
     @Test
@@ -192,7 +192,7 @@ public class SequenceAdminControllerTest {
                         .content("{not-json"))
                 .andExpect(status().isBadRequest());
 
-        verifyNoInteractions(idService);
+        verifyNoInteractions(sequenceAdminService);
     }
 
     @Test
@@ -201,7 +201,7 @@ public class SequenceAdminControllerTest {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest());
 
-        verifyNoInteractions(idService);
+        verifyNoInteractions(sequenceAdminService);
     }
 
     @Test
@@ -211,18 +211,18 @@ public class SequenceAdminControllerTest {
                         .content("500"))
                 .andExpect(status().isUnsupportedMediaType());
 
-        verifyNoInteractions(idService);
+        verifyNoInteractions(sequenceAdminService);
     }
 
     @Test
     public void should_wrap_update_failure_as_cause_when_invoked_directly() {
         SequenceLastValueUpdateFailedException cause =
                 new SequenceLastValueUpdateFailedException("nope", new RuntimeException());
-        doThrow(cause).when(idService).updateSequenceLastValue("default", 10L);
+        doThrow(cause).when(sequenceAdminService).updateSequenceLastValue("default", 10L);
         SeriesLastValue body = new SeriesLastValue();
         body.setNewLastValue(10L);
 
-        assertThatThrownBy(() -> new SequenceAdminController(idService).changeLastValue("default", body))
+        assertThatThrownBy(() -> new SequenceAdminController(sequenceAdminService).changeLastValue("default", body))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasCause(cause)
                 .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode().value()).isEqualTo(400));
@@ -233,16 +233,16 @@ public class SequenceAdminControllerTest {
         SeriesLastValue body = new SeriesLastValue();
         body.setNewLastValue(77L);
 
-        ResponseEntity<IdResponse> response = new SequenceAdminController(idService).changeLastValue("default", body);
+        ResponseEntity<IdResponse> response = new SequenceAdminController(sequenceAdminService).changeLastValue("default", body);
 
         assertThat(response.getStatusCode().value()).isEqualTo(200);
         assertThat(response.getBody()).isEqualTo(new IdResponse("77"));
-        verify(idService).updateSequenceLastValue("default", 77L);
+        verify(sequenceAdminService).updateSequenceLastValue("default", 77L);
     }
 
     @Test
     public void should_include_reason_when_current_value_series_is_invalid() throws Exception {
-        when(idService.getCurrentValue("unknown"))
+        when(sequenceAdminService.getCurrentValue("unknown"))
                 .thenThrow(new InvalidSeriesException("Invalid series name provided"));
 
         mockMvc.perform(get("/idgenerator/v1/ids/{seriesName}/currentValue", "unknown"))
@@ -253,7 +253,7 @@ public class SequenceAdminControllerTest {
 
     @Test
     public void should_include_reason_when_current_value_lookup_fails() throws Exception {
-        when(idService.getCurrentValue("default"))
+        when(sequenceAdminService.getCurrentValue("default"))
                 .thenThrow(new IdNotGeneratedException("Failed to get current value", new RuntimeException()));
 
         mockMvc.perform(get("/idgenerator/v1/ids/{seriesName}/currentValue", "default"))
@@ -266,9 +266,9 @@ public class SequenceAdminControllerTest {
     public void should_wrap_current_value_exceptions_as_cause() {
         InvalidSeriesException invalidSeries = new InvalidSeriesException("Invalid series name provided");
         IdNotGeneratedException notGenerated = new IdNotGeneratedException("boom", new RuntimeException());
-        when(idService.getCurrentValue("unknown")).thenThrow(invalidSeries);
-        when(idService.getCurrentValue("default")).thenThrow(notGenerated);
-        SequenceAdminController controller = new SequenceAdminController(idService);
+        when(sequenceAdminService.getCurrentValue("unknown")).thenThrow(invalidSeries);
+        when(sequenceAdminService.getCurrentValue("default")).thenThrow(notGenerated);
+        SequenceAdminController controller = new SequenceAdminController(sequenceAdminService);
 
         assertThatThrownBy(() -> controller.getCurrentId("unknown"))
                 .isInstanceOf(ResponseStatusException.class)
@@ -282,7 +282,7 @@ public class SequenceAdminControllerTest {
     public void should_return_all_sequence_detail_fields() throws Exception {
         SequenceDataResponse details = new SequenceDataResponse("public", "product_sequence",
                 1451000000L, 1451000000L, 1451999999L, 1L, 1L, false, 1451000010L);
-        when(idService.getSequenceDetails("product")).thenReturn(details);
+        when(sequenceAdminService.getSequenceDetails("product")).thenReturn(details);
 
         mockMvc.perform(get("/idgenerator/v1/ids/{seriesName}/details", "product"))
                 .andExpect(status().isOk())
@@ -300,7 +300,7 @@ public class SequenceAdminControllerTest {
 
     @Test
     public void should_include_reason_when_details_series_is_invalid() throws Exception {
-        when(idService.getSequenceDetails("unknown"))
+        when(sequenceAdminService.getSequenceDetails("unknown"))
                 .thenThrow(new InvalidSeriesException("Invalid series name provided"));
 
         mockMvc.perform(get("/idgenerator/v1/ids/{seriesName}/details", "unknown"))
@@ -311,7 +311,7 @@ public class SequenceAdminControllerTest {
 
     @Test
     public void should_include_reason_when_details_retrieval_fails() throws Exception {
-        when(idService.getSequenceDetails("default"))
+        when(sequenceAdminService.getSequenceDetails("default"))
                 .thenThrow(new SequenceDetailsRetrievalException("Boom", new RuntimeException()));
 
         mockMvc.perform(get("/idgenerator/v1/ids/{seriesName}/details", "default"))
@@ -325,9 +325,9 @@ public class SequenceAdminControllerTest {
         InvalidSeriesException invalidSeries = new InvalidSeriesException("Invalid series name provided");
         SequenceDetailsRetrievalException retrievalFailed =
                 new SequenceDetailsRetrievalException("Boom", new RuntimeException());
-        when(idService.getSequenceDetails("unknown")).thenThrow(invalidSeries);
-        when(idService.getSequenceDetails("default")).thenThrow(retrievalFailed);
-        SequenceAdminController controller = new SequenceAdminController(idService);
+        when(sequenceAdminService.getSequenceDetails("unknown")).thenThrow(invalidSeries);
+        when(sequenceAdminService.getSequenceDetails("default")).thenThrow(retrievalFailed);
+        SequenceAdminController controller = new SequenceAdminController(sequenceAdminService);
 
         assertThatThrownBy(() -> controller.getSequenceDetails("unknown"))
                 .isInstanceOf(ResponseStatusException.class)
@@ -340,10 +340,10 @@ public class SequenceAdminControllerTest {
     @Test
     public void should_propagate_unexpected_exceptions() {
         IllegalStateException unexpected = new IllegalStateException("boom");
-        when(idService.getCurrentValue("default")).thenThrow(unexpected);
-        when(idService.getSequenceDetails("default")).thenThrow(unexpected);
-        doThrow(unexpected).when(idService).updateSequenceLastValue("default", 1L);
-        SequenceAdminController controller = new SequenceAdminController(idService);
+        when(sequenceAdminService.getCurrentValue("default")).thenThrow(unexpected);
+        when(sequenceAdminService.getSequenceDetails("default")).thenThrow(unexpected);
+        doThrow(unexpected).when(sequenceAdminService).updateSequenceLastValue("default", 1L);
+        SequenceAdminController controller = new SequenceAdminController(sequenceAdminService);
         SeriesLastValue body = new SeriesLastValue();
         body.setNewLastValue(1L);
 
@@ -354,7 +354,7 @@ public class SequenceAdminControllerTest {
 
     @Test
     public void should_return_503_via_mvc_when_bulkhead_full_exception_is_raised() throws Exception {
-        when(idService.getCurrentValue("default")).thenThrow(fullBulkheadException());
+        when(sequenceAdminService.getCurrentValue("default")).thenThrow(fullBulkheadException());
 
         mockMvc.perform(get("/idgenerator/v1/ids/{seriesName}/currentValue", "default"))
                 .andExpect(status().isServiceUnavailable())
@@ -364,7 +364,7 @@ public class SequenceAdminControllerTest {
 
     @Test
     public void should_return_saturation_message_in_bulkhead_full_body() {
-        ResponseEntity<String> response = new SequenceAdminController(idService)
+        ResponseEntity<String> response = new SequenceAdminController(sequenceAdminService)
                 .handleBulkheadFull(fullBulkheadException());
 
         assertThat(response.getBody()).isEqualTo("Admin endpoints are temporarily saturated, please retry shortly");
@@ -379,7 +379,7 @@ public class SequenceAdminControllerTest {
                 SequenceAdminController.class.getMethod("changeLastValue", String.class, SeriesLastValue.class), 1);
         MethodArgumentNotValidException exception = new MethodArgumentNotValidException(parameter, bindingResult);
 
-        Map<String, String> errors = new SequenceAdminController(idService).handleValidationExceptions(exception);
+        Map<String, String> errors = new SequenceAdminController(sequenceAdminService).handleValidationExceptions(exception);
 
         assertThat(errors)
                 .hasSize(2)
@@ -393,7 +393,7 @@ public class SequenceAdminControllerTest {
         MethodParameter parameter = new MethodParameter(
                 SequenceAdminController.class.getMethod("changeLastValue", String.class, SeriesLastValue.class), 1);
 
-        Map<String, String> errors = new SequenceAdminController(idService)
+        Map<String, String> errors = new SequenceAdminController(sequenceAdminService)
                 .handleValidationExceptions(new MethodArgumentNotValidException(parameter, bindingResult));
 
         assertThat(errors).isEmpty();
@@ -406,7 +406,7 @@ public class SequenceAdminControllerTest {
         mockMvc.perform(delete("/idgenerator/v1/ids/{seriesName}/details", "default"))
                 .andExpect(status().isMethodNotAllowed());
 
-        verifyNoInteractions(idService);
+        verifyNoInteractions(sequenceAdminService);
     }
 
     private static BulkheadFullException fullBulkheadException() {
