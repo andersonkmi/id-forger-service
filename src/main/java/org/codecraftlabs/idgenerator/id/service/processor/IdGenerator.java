@@ -1,13 +1,10 @@
 package org.codecraftlabs.idgenerator.id.service.processor;
 
-import org.codecraftlabs.idgenerator.id.Sequence;
 import org.codecraftlabs.idgenerator.id.repository.UniqueIdMapperRepository;
 import org.codecraftlabs.idgenerator.id.service.IdNotGeneratedException;
 import org.codecraftlabs.idgenerator.id.service.InvalidSeriesException;
 import org.codecraftlabs.idgenerator.id.repository.DatabaseException;
 import org.codecraftlabs.idgenerator.id.repository.SequenceNotFoundException;
-import org.codecraftlabs.idgenerator.id.service.SequenceDetailsRetrievalException;
-import org.codecraftlabs.idgenerator.id.service.SequenceLastValueUpdateFailedException;
 import org.springframework.stereotype.Service;
 
 import jakarta.annotation.Nonnull;
@@ -39,25 +36,6 @@ public class IdGenerator {
     }
 
     /**
-     * Returns the current last value for the given series without advancing the sequence.
-     *
-     * @param seriesName the series name
-     * @return the current value as a decimal string
-     * @throws InvalidSeriesException   if the series is not found
-     * @throws IdNotGeneratedException  if the database operation fails
-     */
-    @Nonnull
-    public String getCurrentValue(@Nonnull String seriesName) {
-        try {
-            return valueOf(uniqueIdMapperRepository.getCurrentId(seriesName));
-        } catch (SequenceNotFoundException exception) {
-            throw new InvalidSeriesException("Invalid series name provided", exception);
-        } catch (DatabaseException exception) {
-            throw new IdNotGeneratedException("Failed to generate id due to a database issue", exception);
-        }
-    }
-
-    /**
      * Advances the sequence for the given series and returns the raw {@code long} value.
      * Used internally by format processors that need numeric arithmetic on the ID.
      *
@@ -73,37 +51,6 @@ public class IdGenerator {
             throw new InvalidSeriesException("Invalid series name provided", exception);
         } catch (DatabaseException exception) {
             throw new IdNotGeneratedException("Failed to generate id due to a database issue", exception);
-        }
-    }
-
-    /**
-     * Retrieves full metadata for the sequence backing the given series.
-     *
-     * @param name the series name
-     * @return the {@link Sequence} metadata
-     * @throws SequenceDetailsRetrievalException if the database operation fails
-     */
-    @Nonnull
-    public Sequence getSequenceDetails(@Nonnull String name) {
-        try {
-            return this.uniqueIdMapperRepository.getSequenceDetails("public", name);
-        } catch (DatabaseException exception) {
-            throw new SequenceDetailsRetrievalException("Failed to get details about the sequence", exception);
-        }
-    }
-
-    /**
-     * Updates the last value of the sequence backing the given series.
-     *
-     * @param name      the series name
-     * @param lastValue the new last value to set
-     * @throws SequenceLastValueUpdateFailedException if the database operation fails
-     */
-    public void updateSequenceLastValue(@Nonnull String name, long lastValue) {
-        try {
-            this.uniqueIdMapperRepository.updateSequenceLastValue(name, lastValue);
-        } catch (DatabaseException exception) {
-            throw new SequenceLastValueUpdateFailedException("Failed to update sequence last value", exception);
         }
     }
 }
