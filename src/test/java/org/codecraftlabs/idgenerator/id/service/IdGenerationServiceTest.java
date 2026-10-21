@@ -1,7 +1,5 @@
 package org.codecraftlabs.idgenerator.id.service;
 
-import org.codecraftlabs.idgenerator.controller.admin.SequenceDataResponse;
-import org.codecraftlabs.idgenerator.id.Sequence;
 import org.codecraftlabs.idgenerator.id.service.processor.IdFormatProcessor;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -13,68 +11,44 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-public class IdServiceTest {
+public class IdGenerationServiceTest {
     @Mock
     private IdGenerationServiceFactory idGenerationServiceFactory;
-
-    @Mock
-    private IdSequenceService idSequenceService;
 
     @Mock
     private IdFormatProcessor idFormatProcessor;
 
     @InjectMocks
-    private IdService idService;
+    private IdGenerationService idGenerationService;
 
     @Test
     public void with_explicit_format_should_route_to_matching_processor() {
         when(idGenerationServiceFactory.getProcessor("base64")).thenReturn(Optional.of(idFormatProcessor));
         when(idFormatProcessor.generateId("default")).thenReturn("MTAw");
-        assertThat(idService.generateId("default", "base64")).isEqualTo("MTAw");
+        assertThat(idGenerationService.generateId("default", "base64")).isEqualTo("MTAw");
     }
 
     @Test
     public void with_null_format_should_fall_back_to_plain_processor() {
         when(idGenerationServiceFactory.getProcessor("plain")).thenReturn(Optional.of(idFormatProcessor));
         when(idFormatProcessor.generateId("default")).thenReturn("42");
-        assertThat(idService.generateId("default", null)).isEqualTo("42");
+        assertThat(idGenerationService.generateId("default", null)).isEqualTo("42");
     }
 
     @Test
     public void with_blank_format_should_fall_back_to_plain_processor() {
         when(idGenerationServiceFactory.getProcessor("plain")).thenReturn(Optional.of(idFormatProcessor));
         when(idFormatProcessor.generateId("default")).thenReturn("42");
-        assertThat(idService.generateId("default", "   ")).isEqualTo("42");
+        assertThat(idGenerationService.generateId("default", "   ")).isEqualTo("42");
     }
 
     @Test
     public void with_unknown_format_should_throw_invalid_format_exception() {
         when(idGenerationServiceFactory.getProcessor("unknown")).thenReturn(Optional.empty());
         assertThatExceptionOfType(InvalidFormatException.class)
-                .isThrownBy(() -> idService.generateId("default", "unknown"));
-    }
-
-    @Test
-    public void should_return_current_value_from_id_sequence_service() {
-        when(idSequenceService.getCurrentValue("default")).thenReturn("100");
-        assertThat(idService.getCurrentValue("default")).isEqualTo("100");
-    }
-
-    @Test
-    public void should_return_sequence_details_from_id_sequence_service() {
-        Sequence sequence = new Sequence("public", "default_sequence", 1L, 1L, Long.MAX_VALUE, 1L, 1L, false, 10L);
-        SequenceDataResponse expected = new SequenceDataResponse("public", "default_sequence", 1L, 1L, Long.MAX_VALUE, 1L, 1L, false, 10L);
-        when(idSequenceService.getSequenceDetails("default")).thenReturn(sequence);
-        assertThat(idService.getSequenceDetails("default")).isEqualTo(expected);
-    }
-
-    @Test
-    public void should_forward_last_value_update_to_id_sequence_service() {
-        idService.updateSequenceLastValue("default", 500L);
-        verify(idSequenceService).updateSequenceLastValue("default", 500L);
+                .isThrownBy(() -> idGenerationService.generateId("default", "unknown"));
     }
 }

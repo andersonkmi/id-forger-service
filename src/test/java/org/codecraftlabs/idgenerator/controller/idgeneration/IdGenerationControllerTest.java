@@ -1,8 +1,8 @@
 package org.codecraftlabs.idgenerator.controller.idgeneration;
 
 import org.codecraftlabs.idgenerator.controller.IdResponse;
+import org.codecraftlabs.idgenerator.id.service.IdGenerationService;
 import org.codecraftlabs.idgenerator.id.service.IdNotGeneratedException;
-import org.codecraftlabs.idgenerator.id.service.IdService;
 import org.codecraftlabs.idgenerator.id.service.InvalidFormatException;
 import org.codecraftlabs.idgenerator.id.service.InvalidSeriesException;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,19 +34,19 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ExtendWith(MockitoExtension.class)
 public class IdGenerationControllerTest {
     @Mock
-    private IdService idService;
+    private IdGenerationService idGenerationService;
 
     private MockMvc mockMvc;
 
     @BeforeEach
     public void setUp() {
-        IdGenerationController controller = new IdGenerationController(idService);
+        IdGenerationController controller = new IdGenerationController(idGenerationService);
         mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
     }
 
     @Test
     public void should_return_generated_id_with_explicit_format() throws Exception {
-        when(idService.generateId("default", "base64")).thenReturn("MTAw");
+        when(idGenerationService.generateId("default", "base64")).thenReturn("MTAw");
 
         mockMvc.perform(get("/idgenerator/v1/ids/{seriesName}", "default").param("format", "base64"))
                 .andExpect(status().isOk())
@@ -55,18 +55,18 @@ public class IdGenerationControllerTest {
 
     @Test
     public void should_return_generated_id_when_format_is_omitted() throws Exception {
-        when(idService.generateId(eq("default"), eq(null))).thenReturn("42");
+        when(idGenerationService.generateId(eq("default"), eq(null))).thenReturn("42");
 
         mockMvc.perform(get("/idgenerator/v1/ids/{seriesName}", "default"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value("42"));
 
-        verify(idService).generateId("default", null);
+        verify(idGenerationService).generateId("default", null);
     }
 
     @Test
     public void should_return_404_when_series_is_invalid() throws Exception {
-        when(idService.generateId("unknown", null))
+        when(idGenerationService.generateId("unknown", null))
                 .thenThrow(new InvalidSeriesException("Invalid series name provided"));
 
         mockMvc.perform(get("/idgenerator/v1/ids/{seriesName}", "unknown"))
@@ -75,7 +75,7 @@ public class IdGenerationControllerTest {
 
     @Test
     public void should_return_400_when_format_is_invalid() throws Exception {
-        when(idService.generateId("default", "weird"))
+        when(idGenerationService.generateId("default", "weird"))
                 .thenThrow(new InvalidFormatException("Invalid format requested"));
 
         mockMvc.perform(get("/idgenerator/v1/ids/{seriesName}", "default").param("format", "weird"))
@@ -84,7 +84,7 @@ public class IdGenerationControllerTest {
 
     @Test
     public void should_return_400_when_id_generation_fails() throws Exception {
-        when(idService.generateId("default", null))
+        when(idGenerationService.generateId("default", null))
                 .thenThrow(new IdNotGeneratedException("Failed to generate id", new RuntimeException()));
 
         mockMvc.perform(get("/idgenerator/v1/ids/{seriesName}", "default"))
@@ -93,7 +93,7 @@ public class IdGenerationControllerTest {
 
     @Test
     public void should_return_json_content_type() throws Exception {
-        when(idService.generateId("default", null)).thenReturn("42");
+        when(idGenerationService.generateId("default", null)).thenReturn("42");
 
         mockMvc.perform(get("/idgenerator/v1/ids/{seriesName}", "default"))
                 .andExpect(status().isOk())
@@ -103,30 +103,30 @@ public class IdGenerationControllerTest {
 
     @Test
     public void should_pass_series_name_and_format_unchanged_to_service() throws Exception {
-        when(idService.generateId("product", "timestamped")).thenReturn("000001451000000-1700000000000");
+        when(idGenerationService.generateId("product", "timestamped")).thenReturn("000001451000000-1700000000000");
 
         mockMvc.perform(get("/idgenerator/v1/ids/{seriesName}", "product").param("format", "timestamped"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value("000001451000000-1700000000000"));
 
-        verify(idService).generateId("product", "timestamped");
-        verifyNoMoreInteractions(idService);
+        verify(idGenerationService).generateId("product", "timestamped");
+        verifyNoMoreInteractions(idGenerationService);
     }
 
     @Test
     public void should_pass_empty_format_to_service_as_is() throws Exception {
-        when(idService.generateId("default", "")).thenReturn("42");
+        when(idGenerationService.generateId("default", "")).thenReturn("42");
 
         mockMvc.perform(get("/idgenerator/v1/ids/{seriesName}", "default").param("format", ""))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value("42"));
 
-        verify(idService).generateId("default", "");
+        verify(idGenerationService).generateId("default", "");
     }
 
     @Test
     public void should_include_reason_when_series_is_invalid() throws Exception {
-        when(idService.generateId("unknown", null))
+        when(idGenerationService.generateId("unknown", null))
                 .thenThrow(new InvalidSeriesException("Invalid series name provided"));
 
         mockMvc.perform(get("/idgenerator/v1/ids/{seriesName}", "unknown"))
@@ -137,7 +137,7 @@ public class IdGenerationControllerTest {
 
     @Test
     public void should_include_reason_when_format_is_invalid() throws Exception {
-        when(idService.generateId("default", "weird"))
+        when(idGenerationService.generateId("default", "weird"))
                 .thenThrow(new InvalidFormatException("Invalid format requested"));
 
         mockMvc.perform(get("/idgenerator/v1/ids/{seriesName}", "default").param("format", "weird"))
@@ -148,7 +148,7 @@ public class IdGenerationControllerTest {
 
     @Test
     public void should_include_reason_when_id_generation_fails() throws Exception {
-        when(idService.generateId("default", null))
+        when(idGenerationService.generateId("default", null))
                 .thenThrow(new IdNotGeneratedException("Failed to generate id", new RuntimeException()));
 
         mockMvc.perform(get("/idgenerator/v1/ids/{seriesName}", "default"))
@@ -159,8 +159,8 @@ public class IdGenerationControllerTest {
 
     @Test
     public void should_return_ok_response_entity_when_invoked_directly() {
-        when(idService.generateId("default", "plain")).thenReturn("7");
-        IdGenerationController controller = new IdGenerationController(idService);
+        when(idGenerationService.generateId("default", "plain")).thenReturn("7");
+        IdGenerationController controller = new IdGenerationController(idGenerationService);
 
         ResponseEntity<IdResponse> response = controller.getNextId("default", "plain");
 
@@ -171,8 +171,8 @@ public class IdGenerationControllerTest {
     @Test
     public void should_wrap_invalid_series_exception_as_cause() {
         InvalidSeriesException cause = new InvalidSeriesException("Invalid series name provided");
-        when(idService.generateId("unknown", null)).thenThrow(cause);
-        IdGenerationController controller = new IdGenerationController(idService);
+        when(idGenerationService.generateId("unknown", null)).thenThrow(cause);
+        IdGenerationController controller = new IdGenerationController(idGenerationService);
 
         assertThatThrownBy(() -> controller.getNextId("unknown", null))
                 .isInstanceOf(ResponseStatusException.class)
@@ -183,8 +183,8 @@ public class IdGenerationControllerTest {
     @Test
     public void should_wrap_invalid_format_exception_as_cause() {
         InvalidFormatException cause = new InvalidFormatException("Invalid format requested");
-        when(idService.generateId("default", "weird")).thenThrow(cause);
-        IdGenerationController controller = new IdGenerationController(idService);
+        when(idGenerationService.generateId("default", "weird")).thenThrow(cause);
+        IdGenerationController controller = new IdGenerationController(idGenerationService);
 
         assertThatThrownBy(() -> controller.getNextId("default", "weird"))
                 .isInstanceOf(ResponseStatusException.class)
@@ -195,8 +195,8 @@ public class IdGenerationControllerTest {
     @Test
     public void should_wrap_id_not_generated_exception_as_cause() {
         IdNotGeneratedException cause = new IdNotGeneratedException("Failed to generate id", new RuntimeException());
-        when(idService.generateId("default", null)).thenThrow(cause);
-        IdGenerationController controller = new IdGenerationController(idService);
+        when(idGenerationService.generateId("default", null)).thenThrow(cause);
+        IdGenerationController controller = new IdGenerationController(idGenerationService);
 
         assertThatThrownBy(() -> controller.getNextId("default", null))
                 .isInstanceOf(ResponseStatusException.class)
@@ -207,8 +207,8 @@ public class IdGenerationControllerTest {
     @Test
     public void should_propagate_unexpected_exceptions() {
         IllegalStateException unexpected = new IllegalStateException("boom");
-        when(idService.generateId("default", null)).thenThrow(unexpected);
-        IdGenerationController controller = new IdGenerationController(idService);
+        when(idGenerationService.generateId("default", null)).thenThrow(unexpected);
+        IdGenerationController controller = new IdGenerationController(idGenerationService);
 
         assertThatThrownBy(() -> controller.getNextId("default", null))
                 .isSameAs(unexpected);
@@ -221,6 +221,6 @@ public class IdGenerationControllerTest {
         mockMvc.perform(delete("/idgenerator/v1/ids/{seriesName}", "default"))
                 .andExpect(status().isMethodNotAllowed());
 
-        verifyNoInteractions(idService);
+        verifyNoInteractions(idGenerationService);
     }
 }
