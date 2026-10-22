@@ -1,21 +1,44 @@
 package org.codecraftlabs.idgenerator.controller;
 
 import org.assertj.core.api.Assertions;
+import org.codecraftlabs.idgenerator.MainApplication;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
+import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.utility.MountableFile;
 
 @Tag("integration")
+@Testcontainers
+@SpringBootTest(classes = MainApplication.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 public class IdGeneratorIntegrationTest {
+    @Container
+    @ServiceConnection
+    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:17.5")
+            .withDatabaseName("idgenerator")
+            .withUsername("idgen")
+            .withPassword("idgen")
+            .withCopyFileToContainer(
+                    MountableFile.forHostPath("docker/pgsql/init.sql"),
+                    "/docker-entrypoint-initdb.d/init.sql");
+
+    @LocalServerPort
+    private int port;
+
     private RestClient restClient;
 
     @BeforeEach
     public void setup() {
         restClient = RestClient
                 .builder()
-                .baseUrl("http://localhost:27110")
+                .baseUrl("http://localhost:" + port)
                 .defaultHeader("Content-Type", "application/json")
                 .build();
     }

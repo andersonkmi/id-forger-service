@@ -69,17 +69,13 @@ The service requires a PostgreSQL database. A ready-to-use image is defined in `
 Build the image:
 
 ```bash
-docker build -t codecraftlabs/idgenerator:1.0.0 docker/pgsql
+docker build -t codecraftlabs/idgeneratordb:1.0.0 docker/pgsql
 ```
 
 Create and start the container:
 
 ```bash
-docker run -d \
-  --name id-generator-db \
-  -p 5432:5432 \
-  -v id-generator-pgdata:/var/lib/postgresql/data \
-  codecraftlabs/idgenerator:1.0.0
+docker run -d --name id-generator-db -p 5432:5432 -v id-generator-pgdata:/var/lib/postgresql/data codecraftlabs/idgeneratordb:1.0.0
 ```
 
 Default connection settings (matching `application.properties`):
@@ -110,8 +106,23 @@ Locally with Gradle:
 
 Or with Docker:
 
+- Build the application:
+
 ```bash
-docker run -p 8080:8080 id-forger-service
+gradle clean build
+```
+
+- Create the application image using the following command:
+
+```bash
+docker build -t codecraftlabs/id-forger-service:1.2.0 docker/app
+```
+
+- Start the container using the following command:
+
+
+```bash
+docker run -d --name id-generator -p 8080:8080 codecraftlabs/idgenerator:1.2.0
 ```
 
 ### 3. Generate an ID

@@ -1,7 +1,7 @@
 version: '3.8'
 services:
   postgres:
-    image: codecraftlabs/idgenerator:1.0.0
+    image: codecraftlabs/idgeneratordb:1.0.0
     container_name: id-generator-db
     environment:
       POSTGRES_DB: idgenerator
@@ -13,7 +13,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
 
   id-generator:
-    image: codecraftlabs/idgeneratorapp:1.0.0
+    image: codecraftlabs/id-forger-service:1.2.0
     container_name: id-generator-app
     depends_on:
       - postgres

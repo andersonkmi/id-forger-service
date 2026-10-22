@@ -34,7 +34,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-jdbc'
 	implementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter:3.0.4'
 	implementation 'io.github.resilience4j:resilience4j-spring-boot3:2.2.0'
-	runtimeOnly 'org.postgresql:postgresql:42.7.2'
+	runtimeOnly 'org.postgresql:postgresql:42.7.14'
 
 	// Test related dependencies
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
@@ -91,13 +91,30 @@ dependencies {
     integrationTestImplementation 'org.junit.jupiter:junit-jupiter:5.11.0-M1'
     integrationTestImplementation 'org.springframework.boot:spring-boot-starter-web'
     integrationTestImplementation 'org.springframework.boot:spring-boot-starter-test'
+    integrationTestImplementation 'org.springframework.boot:spring-boot-testcontainers'
+    integrationTestImplementation 'org.testcontainers:junit-jupiter'
+    integrationTestImplementation 'org.testcontainers:postgresql'
 }
 
+// Self-contained: boots the app on a random port against a Postgres Testcontainer (requires Docker)
 tasks.register('integrationTest', Test) {
     testClassesDirs = sourceSets.integrationTest.output.classesDirs
     classpath = sourceSets.integrationTest.runtimeClasspath
 
     useJUnitPlatform {
         includeTags 'integration'
+    }
+}
+
+// Load test against an already running instance (e.g. docker compose up), defaults to http://localhost:27110
+tasks.register('loadTest', Test) {
+    testClassesDirs = sourceSets.integrationTest.output.classesDirs
+    classpath = sourceSets.integrationTest.runtimeClasspath
+    systemProperty 'loadTest.baseUrl', findProperty('loadTest.baseUrl') ?: 'http://localhost:27110'
+    systemProperty 'loadTest.totalCalls', findProperty('loadTest.totalCalls') ?: '100000'
+    testLogging.showStandardStreams = true
+
+    useJUnitPlatform {
+        includeTags 'load'
     }
 }
