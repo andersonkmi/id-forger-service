@@ -1,5 +1,6 @@
 package org.codecraftlabs.idgenerator;
 
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
@@ -19,10 +20,11 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 
-@Tag("integration")
+@Tag("load")
 public class ConcurrentTest {
-    private static final String ENDPOINT_URL = "http://localhost:27110/idgenerator/v1/ids/default";
-    private static final int TOTAL_CALLS = 100000;
+    private static final String ENDPOINT_URL =
+            System.getProperty("loadTest.baseUrl", "http://localhost:27110") + "/idgenerator/v1/ids/default";
+    private static final int TOTAL_CALLS = Integer.getInteger("loadTest.totalCalls", 100000);
     private static final int THREAD_POOL_SIZE = 100;
 
     @Test
@@ -91,6 +93,8 @@ public class ConcurrentTest {
         System.out.println("Max response time: " + maxResponseTime + "ms");
         System.out.println("Requests per second: " +
                 String.format("%.2f", (TOTAL_CALLS * 1000.0) / totalDuration));
+
+        Assertions.assertThat(failureCount.get()).isZero();
     }
 
     @Nonnull
