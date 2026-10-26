@@ -65,6 +65,13 @@ public class IdSequenceServiceTest {
                 .isThrownBy(() -> idSequenceService.getSequenceDetails("default"));
     }
 
+    @Test
+    public void when_series_not_found_on_details_lookup_should_throw_invalid_series_exception() {
+        when(uniqueIdRepository.getSequenceDetails(anyString(), anyString())).thenThrow(new SequenceNotFoundException("not found"));
+        assertThatExceptionOfType(InvalidSeriesException.class)
+                .isThrownBy(() -> idSequenceService.getSequenceDetails("unknown"));
+    }
+
     // --- updateSequenceLastValue ---
 
     @Test
@@ -78,5 +85,12 @@ public class IdSequenceServiceTest {
         doThrow(new DatabaseException("db error")).when(uniqueIdRepository).updateSequenceLastValue(anyString(), anyLong());
         assertThatExceptionOfType(SequenceLastValueUpdateFailedException.class)
                 .isThrownBy(() -> idSequenceService.updateSequenceLastValue("default", 500L));
+    }
+
+    @Test
+    public void when_series_not_found_on_update_should_throw_invalid_series_exception() {
+        doThrow(new SequenceNotFoundException("not found")).when(uniqueIdRepository).updateSequenceLastValue(anyString(), anyLong());
+        assertThatExceptionOfType(InvalidSeriesException.class)
+                .isThrownBy(() -> idSequenceService.updateSequenceLastValue("unknown", 500L));
     }
 }

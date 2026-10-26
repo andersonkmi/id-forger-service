@@ -72,6 +72,9 @@ public class SequenceAdminController {
         } catch (SequenceLastValueUpdateFailedException exception) {
             logger.error("Could not update the last value", exception);
             throw new ResponseStatusException(BAD_REQUEST, "Could not update the last value", exception);
+        } catch (InvalidSeriesException exception) {
+            logger.error("Series name is invalid", exception);
+            throw new ResponseStatusException(NOT_FOUND, "Series name is invalid", exception);
         }
     }
 
