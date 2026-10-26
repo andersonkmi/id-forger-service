@@ -150,6 +150,17 @@ public class SequenceAdminControllerTest {
     }
 
     @Test
+    public void should_return_404_when_last_value_update_series_is_invalid() throws Exception {
+        doThrow(new InvalidSeriesException("Invalid series name provided"))
+                .when(sequenceAdminService).updateSequenceLastValue("unknown", 500L);
+
+        mockMvc.perform(patch("/idgenerator/v1/ids/{seriesName}", "unknown")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"newLastValue\":500}"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
     public void should_include_reason_when_last_value_update_fails() throws Exception {
         doThrow(new SequenceLastValueUpdateFailedException("nope", new RuntimeException()))
                 .when(sequenceAdminService).updateSequenceLastValue("default", 500L);

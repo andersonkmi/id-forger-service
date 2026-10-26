@@ -52,6 +52,8 @@ public class IdSequenceService {
     public Sequence getSequenceDetails(@Nonnull String name) {
         try {
             return this.uniqueIdMapperRepository.getSequenceDetails("public", name);
+        } catch (SequenceNotFoundException exception) {
+            throw new InvalidSeriesException("Invalid series name provided", exception);
         } catch (DatabaseException exception) {
             throw new SequenceDetailsRetrievalException("Failed to get details about the sequence", exception);
         }
@@ -67,6 +69,8 @@ public class IdSequenceService {
     public void updateSequenceLastValue(@Nonnull String name, long lastValue) {
         try {
             this.uniqueIdMapperRepository.updateSequenceLastValue(name, lastValue);
+        } catch (SequenceNotFoundException exception) {
+            throw new InvalidSeriesException("Invalid series name provided", exception);
         } catch (DatabaseException exception) {
             throw new SequenceLastValueUpdateFailedException("Failed to update sequence last value", exception);
         }
