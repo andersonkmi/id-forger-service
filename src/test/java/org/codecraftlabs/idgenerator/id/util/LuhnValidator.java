@@ -1,8 +1,5 @@
 package org.codecraftlabs.idgenerator.id.util;
 
-import org.springframework.context.annotation.Scope;
-import org.springframework.stereotype.Component;
-
 import jakarta.annotation.Nonnull;
 
 /**
@@ -23,8 +20,6 @@ import jakarta.annotation.Nonnull;
  * Sum: 4+1+3+4+0+2+5+2+1+4+8+6+0+6+6+6 = 58
  * Since 58 is not divisible by 10, this number would fail the Luhn check.
  */
-@Component
-@Scope("prototype")
 public class LuhnValidator {
     /**
      * Validates whether the given number passes the Luhn check.
