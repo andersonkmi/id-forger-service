@@ -72,13 +72,13 @@ Build the image:
 docker build -t codecraftlabs/idgeneratordb:1.0.0 docker/pgsql
 ```
 
-Create and start the container:
+Create and start the container. The image has no built-in password, so `POSTGRES_PASSWORD` must be set when it starts:
 
 ```bash
-docker run -d --name id-generator-db -p 5432:5432 -v id-generator-pgdata:/var/lib/postgresql/data codecraftlabs/idgeneratordb:1.0.0
+docker run -d --name id-generator-db -p 5432:5432 -e POSTGRES_PASSWORD=idgen -v id-generator-pgdata:/var/lib/postgresql/data codecraftlabs/idgeneratordb:1.0.0
 ```
 
-Default connection settings (matching `application.properties`):
+Default connection settings for the `local` profile:
 
 | Setting  | Value         |
 | -------- | ------------- |
@@ -90,6 +90,8 @@ Default connection settings (matching `application.properties`):
 
 These can be overridden for the application via the `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER` and `DB_PASSWORD` environment variables.
 
+The default user and password only exist in the `local` profile (`application-local.properties`). Outside of it, `DB_USER` and `DB_PASSWORD` are required and the application refuses to start without them.
+
 Verify the database:
 
 ```bash
@@ -98,11 +100,13 @@ docker exec -it id-generator-db psql -U idgen -d idgenerator -c "SELECT sequence
 
 ### 2. Run the application
 
-Locally with Gradle:
+Locally with Gradle (`bootRun` activates the `local` profile):
 
 ```bash
 ./gradlew bootRun
 ```
+
+If you run the jar or start the application from an IDE, set `SPRING_PROFILES_ACTIVE=local`.
 
 Or with Docker:
 
