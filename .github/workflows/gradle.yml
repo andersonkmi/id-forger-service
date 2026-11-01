@@ -45,10 +45,10 @@ jobs:
          gradle-version: '8.9'
     #
     - name: Build with Gradle 8.9
-      run: gradle build
+      run: ./gradlew build
 
     - name: Integration tests
-      run: gradle integrationTest
+      run: ./gradlew integrationTest
 
 #  dependency-submission:
 #
