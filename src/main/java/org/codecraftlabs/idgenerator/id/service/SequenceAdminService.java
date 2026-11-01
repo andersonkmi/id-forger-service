@@ -53,14 +53,14 @@ public class SequenceAdminService {
 
     @Nonnull
     private SequenceDataResponse convert(@Nonnull Sequence sequence) {
-        return new SequenceDataResponse(sequence.getSchema(),
-                sequence.getName(),
-                sequence.getStartValue(),
-                sequence.getMinValue(),
-                sequence.getMaxValue(),
-                sequence.getIncrementBy(),
-                sequence.getCacheSize(),
-                sequence.isCycle(),
-                sequence.getLastValue());
+        return new SequenceDataResponse(sequence.schema(),
+                sequence.name(),
+                sequence.startValue(),
+                sequence.minValue(),
+                sequence.maxValue(),
+                sequence.incrementBy(),
+                sequence.cacheSize(),
+                sequence.cycle(),
+                sequence.lastValue());
     }
 }
