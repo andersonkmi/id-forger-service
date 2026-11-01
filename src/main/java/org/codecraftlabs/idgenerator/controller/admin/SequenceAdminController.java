@@ -67,8 +67,8 @@ public class SequenceAdminController {
     public ResponseEntity<IdResponse> changeLastValue(@PathVariable String seriesName,
                                                       @RequestBody SeriesLastValue seriesLastValue) {
         try {
-            this.sequenceAdminService.updateSequenceLastValue(seriesName, seriesLastValue.getNewLastValue());
-            return status(OK).body(new IdResponse(String.valueOf(seriesLastValue.getNewLastValue())));
+            this.sequenceAdminService.updateSequenceLastValue(seriesName, seriesLastValue.newLastValue());
+            return status(OK).body(new IdResponse(String.valueOf(seriesLastValue.newLastValue())));
         } catch (SequenceLastValueUpdateFailedException exception) {
             logger.error("Could not update the last value", exception);
             throw new ResponseStatusException(BAD_REQUEST, "Could not update the last value", exception);
