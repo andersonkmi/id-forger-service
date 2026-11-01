@@ -1,6 +1,5 @@
 package org.codecraftlabs.idgenerator.id.util;
 
-import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
 import jakarta.annotation.Nonnull;
@@ -10,7 +9,6 @@ import jakarta.annotation.Nonnull;
  * a number that passes Luhn validation.
  */
 @Component
-@Scope("prototype")
 public class LuhnDigitNumberGenerator {
     /**
      * Calculates the Luhn check digit for {@code partialNumber} and appends it.
