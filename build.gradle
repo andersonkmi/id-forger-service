@@ -61,6 +61,10 @@ bootJar {
 	}
 }
 
+bootRun {
+	systemProperty 'spring.profiles.active', findProperty('profile') ?: 'local'
+}
+
 tasks.register('deleteLogs', Delete) {
 	delete fileTree("${projectDir}/logs")
 }
