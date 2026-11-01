@@ -29,7 +29,8 @@ import java.util.Map;
 public class IdGeneratorIntegrationTest {
     @Container
     @ServiceConnection
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:17.5")
+    @SuppressWarnings({"resource", "unused"})
+    private static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:17.5")
             .withDatabaseName("idgenerator")
             .withUsername("idgen")
             .withPassword("idgen")
