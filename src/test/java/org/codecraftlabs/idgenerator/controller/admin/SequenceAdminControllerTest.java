@@ -230,8 +230,7 @@ public class SequenceAdminControllerTest {
         SequenceLastValueUpdateFailedException cause =
                 new SequenceLastValueUpdateFailedException("nope", new RuntimeException());
         doThrow(cause).when(sequenceAdminService).updateSequenceLastValue("default", 10L);
-        SeriesLastValue body = new SeriesLastValue();
-        body.setNewLastValue(10L);
+        SeriesLastValue body = new SeriesLastValue(10L);
 
         assertThatThrownBy(() -> new SequenceAdminController(sequenceAdminService).changeLastValue("default", body))
                 .isInstanceOf(ResponseStatusException.class)
@@ -241,8 +240,7 @@ public class SequenceAdminControllerTest {
 
     @Test
     public void should_return_ok_response_entity_when_updating_directly() {
-        SeriesLastValue body = new SeriesLastValue();
-        body.setNewLastValue(77L);
+        SeriesLastValue body = new SeriesLastValue(77L);
 
         ResponseEntity<IdResponse> response = new SequenceAdminController(sequenceAdminService).changeLastValue("default", body);
 
@@ -355,8 +353,7 @@ public class SequenceAdminControllerTest {
         when(sequenceAdminService.getSequenceDetails("default")).thenThrow(unexpected);
         doThrow(unexpected).when(sequenceAdminService).updateSequenceLastValue("default", 1L);
         SequenceAdminController controller = new SequenceAdminController(sequenceAdminService);
-        SeriesLastValue body = new SeriesLastValue();
-        body.setNewLastValue(1L);
+        SeriesLastValue body = new SeriesLastValue(1L);
 
         assertThatThrownBy(() -> controller.getCurrentId("default")).isSameAs(unexpected);
         assertThatThrownBy(() -> controller.getSequenceDetails("default")).isSameAs(unexpected);
@@ -383,7 +380,7 @@ public class SequenceAdminControllerTest {
 
     @Test
     public void should_map_validation_errors_to_field_messages() throws Exception {
-        BeanPropertyBindingResult bindingResult = new BeanPropertyBindingResult(new SeriesLastValue(), "seriesLastValue");
+        BeanPropertyBindingResult bindingResult = new BeanPropertyBindingResult(new SeriesLastValue(0L), "seriesLastValue");
         bindingResult.addError(new FieldError("seriesLastValue", "newLastValue", "must be positive"));
         bindingResult.addError(new FieldError("seriesLastValue", "seriesName", "must not be blank"));
         MethodParameter parameter = new MethodParameter(
@@ -400,7 +397,7 @@ public class SequenceAdminControllerTest {
 
     @Test
     public void should_return_empty_map_when_no_validation_errors() throws Exception {
-        BeanPropertyBindingResult bindingResult = new BeanPropertyBindingResult(new SeriesLastValue(), "seriesLastValue");
+        BeanPropertyBindingResult bindingResult = new BeanPropertyBindingResult(new SeriesLastValue(0L), "seriesLastValue");
         MethodParameter parameter = new MethodParameter(
                 SequenceAdminController.class.getMethod("changeLastValue", String.class, SeriesLastValue.class), 1);
 

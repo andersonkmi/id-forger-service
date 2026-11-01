@@ -70,13 +70,13 @@ public class IdGeneratorIntegrationTest {
                 .retrieve()
                 .body(SequenceDetails.class);
         Assertions.assertThat(response).isNotNull();
-        Assertions.assertThat(response.getSchema()).isEqualTo("public");
-        Assertions.assertThat(response.getName()).isEqualTo("default_sequence");
-        Assertions.assertThat(response.getStartValue()).isEqualTo(1L);
-        Assertions.assertThat(response.getMinValue()).isEqualTo(1L);
-        Assertions.assertThat(response.getMaxValue()).isEqualTo(9223372036854775807L);
-        Assertions.assertThat(response.getIncrementBy()).isEqualTo(1L);
-        Assertions.assertThat(response.getCacheSize()).isEqualTo(1L);
+        Assertions.assertThat(response.schema()).isEqualTo("public");
+        Assertions.assertThat(response.name()).isEqualTo("default_sequence");
+        Assertions.assertThat(response.startValue()).isEqualTo(1L);
+        Assertions.assertThat(response.minValue()).isEqualTo(1L);
+        Assertions.assertThat(response.maxValue()).isEqualTo(9223372036854775807L);
+        Assertions.assertThat(response.incrementBy()).isEqualTo(1L);
+        Assertions.assertThat(response.cacheSize()).isEqualTo(1L);
     }
 
     @Test
@@ -179,12 +179,12 @@ public class IdGeneratorIntegrationTest {
                 .retrieve()
                 .body(SequenceDetails.class);
         Assertions.assertThat(response).isNotNull();
-        Assertions.assertThat(response.getSchema()).isEqualTo("public");
-        Assertions.assertThat(response.getName()).isEqualTo("product_sequence");
-        Assertions.assertThat(response.getStartValue()).isEqualTo(1451000000L);
-        Assertions.assertThat(response.getMinValue()).isEqualTo(1451000000L);
-        Assertions.assertThat(response.getMaxValue()).isEqualTo(1451999999L);
-        Assertions.assertThat(response.getIncrementBy()).isEqualTo(1L);
+        Assertions.assertThat(response.schema()).isEqualTo("public");
+        Assertions.assertThat(response.name()).isEqualTo("product_sequence");
+        Assertions.assertThat(response.startValue()).isEqualTo(1451000000L);
+        Assertions.assertThat(response.minValue()).isEqualTo(1451000000L);
+        Assertions.assertThat(response.maxValue()).isEqualTo(1451999999L);
+        Assertions.assertThat(response.incrementBy()).isEqualTo(1L);
     }
 
     @Test

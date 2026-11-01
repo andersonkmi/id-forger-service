@@ -54,15 +54,15 @@ public class ConcurrentTest {
             Future<ApiCallResult> future = completionService.take();
             ApiCallResult result = future.get();
 
-            if (result.isSuccess()) {
+            if (result.success()) {
                 successCount.incrementAndGet();
             } else {
                 failureCount.incrementAndGet();
-                System.out.println("Call " + result.getCallId() + " failed: " +
-                        result.getErrorMessage());
+                System.out.println("Call " + result.callId() + " failed: " +
+                        result.errorMessage());
             }
 
-            responseTimes.add(result.getResponseTime());
+            responseTimes.add(result.responseTime());
 
             if ((i + 1) % 100 == 0) {
                 System.out.println("Completed " + (i + 1) + " calls");
