@@ -2,6 +2,7 @@ package org.codecraftlabs.idgenerator.controller.admin;
 
 import io.github.resilience4j.bulkhead.BulkheadFullException;
 import io.github.resilience4j.bulkhead.annotation.Bulkhead;
+import org.codecraftlabs.idgenerator.controller.ApiPaths;
 import org.codecraftlabs.idgenerator.controller.IdResponse;
 import org.codecraftlabs.idgenerator.id.service.IdNotGeneratedException;
 import org.codecraftlabs.idgenerator.id.service.InvalidSeriesException;
@@ -42,7 +43,7 @@ import static org.springframework.http.ResponseEntity.status;
  * traffic cannot interfere with high-volume ID retrieval.
  */
 @RestController
-@RequestMapping("/idgenerator/v1")
+@RequestMapping(ApiPaths.V1)
 public class SequenceAdminController {
     private static final Logger logger = LoggerFactory.getLogger(SequenceAdminController.class);
     private final SequenceAdminService sequenceAdminService;
