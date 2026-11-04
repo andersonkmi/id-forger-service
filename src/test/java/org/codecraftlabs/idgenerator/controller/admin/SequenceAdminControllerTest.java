@@ -3,6 +3,7 @@ package org.codecraftlabs.idgenerator.controller.admin;
 import io.github.resilience4j.bulkhead.BulkheadFullException;
 import io.github.resilience4j.bulkhead.BulkheadConfig;
 import io.github.resilience4j.bulkhead.Bulkhead;
+import org.codecraftlabs.idgenerator.controller.ApiVersioningTestSupport;
 import org.codecraftlabs.idgenerator.controller.IdResponse;
 import org.codecraftlabs.idgenerator.id.service.IdNotGeneratedException;
 import org.codecraftlabs.idgenerator.id.service.InvalidSeriesException;
@@ -52,7 +53,9 @@ public class SequenceAdminControllerTest {
     @BeforeEach
     public void setUp() {
         SequenceAdminController controller = new SequenceAdminController(sequenceAdminService);
-        mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
+        mockMvc = MockMvcBuilders.standaloneSetup(controller)
+                .setApiVersionStrategy(ApiVersioningTestSupport.pathSegmentVersionStrategy())
+                .build();
     }
 
     @Test
@@ -186,14 +189,25 @@ public class SequenceAdminControllerTest {
     }
 
     @Test
-    public void should_default_last_value_to_zero_when_body_omits_field() throws Exception {
+    public void should_return_400_and_not_call_service_when_body_omits_field() throws Exception {
         mockMvc.perform(patch("/idgenerator/v1/ids/{seriesName}", "default")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value("0"));
+                .andExpect(status().isBadRequest());
 
-        verify(sequenceAdminService).updateSequenceLastValue("default", 0L);
+        verifyNoInteractions(sequenceAdminService);
+    }
+
+    @Test
+    public void should_return_400_and_not_call_service_for_unsupported_api_version() throws Exception {
+        mockMvc.perform(patch("/idgenerator/v2/ids/{seriesName}", "default")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"newLastValue\":500}"))
+                .andExpect(status().isBadRequest());
+        mockMvc.perform(get("/idgenerator/v2/ids/{seriesName}/details", "default"))
+                .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(sequenceAdminService);
     }
 
     @Test

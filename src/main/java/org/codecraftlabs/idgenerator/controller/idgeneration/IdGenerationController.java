@@ -30,7 +30,7 @@ import static org.springframework.http.ResponseEntity.status;
  * to retrieve newly generated identifiers under {@code /idgenerator/v1/ids}.
  */
 @RestController
-@RequestMapping(ApiPaths.V1)
+@RequestMapping(ApiPaths.BASE)
 public class IdGenerationController {
     private static final Logger logger = LoggerFactory.getLogger(IdGenerationController.class);
     private final IdGenerationService idGenerationService;
@@ -51,8 +51,7 @@ public class IdGenerationController {
      * @return HTTP 200 with the generated ID, 404 if the series is unknown,
      *         or 400 if the format is invalid or generation fails
      */
-    @GetMapping(value = "/ids/{seriesName}",
-            produces = APPLICATION_JSON_VALUE)
+    @GetMapping(value = "/ids/{seriesName}", version = ApiPaths.V1, produces = APPLICATION_JSON_VALUE)
     public ResponseEntity<IdResponse> getNextId(@PathVariable String seriesName,
                                                 @RequestParam(value = "format", required = false) String format) {
         try {

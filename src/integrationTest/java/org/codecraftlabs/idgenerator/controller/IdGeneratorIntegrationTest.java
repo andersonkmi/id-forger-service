@@ -15,9 +15,9 @@ import org.springframework.boot.testcontainers.service.connection.ServiceConnect
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
-import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.utility.MountableFile;
 
 import java.nio.charset.StandardCharsets;
@@ -32,7 +32,7 @@ public class IdGeneratorIntegrationTest {
     @Container
     @ServiceConnection
     @SuppressWarnings({"resource", "unused"})
-    private static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:17.5")
+    private static final PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:17.5")
             .withDatabaseName("idgenerator")
             .withUsername("idgen")
             .withPassword("idgen")
@@ -146,6 +146,20 @@ public class IdGeneratorIntegrationTest {
     @Test
     public void testInvalidFormatReturns400() {
         assertGetFails("/idgenerator/v1/ids/default?format=xyz", "400 Bad Request");
+    }
+
+    @Test
+    public void testUnsupportedApiVersionReturns400() {
+        assertGetFails("/idgenerator/v2/ids/default", "400 Bad Request");
+    }
+
+    @Test
+    public void testActuatorHealthIsNotAffectedByApiVersioning() {
+        String health = restClient.get()
+                .uri("/actuator/health")
+                .retrieve()
+                .body(String.class);
+        Assertions.assertThat(health).contains("\"status\":\"UP\"");
     }
 
     @Test

@@ -1,5 +1,6 @@
 package org.codecraftlabs.idgenerator.controller.idgeneration;
 
+import org.codecraftlabs.idgenerator.controller.ApiVersioningTestSupport;
 import org.codecraftlabs.idgenerator.controller.IdResponse;
 import org.codecraftlabs.idgenerator.id.service.IdGenerationService;
 import org.codecraftlabs.idgenerator.id.service.IdNotGeneratedException;
@@ -41,7 +42,9 @@ public class IdGenerationControllerTest {
     @BeforeEach
     public void setUp() {
         IdGenerationController controller = new IdGenerationController(idGenerationService);
-        mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
+        mockMvc = MockMvcBuilders.standaloneSetup(controller)
+                .setApiVersionStrategy(ApiVersioningTestSupport.pathSegmentVersionStrategy())
+                .build();
     }
 
     @Test
@@ -212,6 +215,22 @@ public class IdGenerationControllerTest {
 
         assertThatThrownBy(() -> controller.getNextId("default", null))
                 .isSameAs(unexpected);
+    }
+
+    @Test
+    public void should_return_400_and_not_call_service_for_unsupported_api_version() throws Exception {
+        mockMvc.perform(get("/idgenerator/v2/ids/{seriesName}", "default"))
+                .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(idGenerationService);
+    }
+
+    @Test
+    public void should_return_400_and_not_call_service_for_malformed_api_version() throws Exception {
+        mockMvc.perform(get("/idgenerator/latest/ids/{seriesName}", "default"))
+                .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(idGenerationService);
     }
 
     @Test

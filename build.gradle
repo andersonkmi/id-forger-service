@@ -5,7 +5,7 @@ buildscript {
 }
 
 plugins {
-	id ("org.springframework.boot") version "3.5.13"
+	id ("org.springframework.boot") version "4.1.2"
 	id ("io.spring.dependency-management") version "1.1.7"
 	id ("java")
 	id ("jacoco")
@@ -28,20 +28,17 @@ java {
 dependencies {
 	// Spring related dependencies
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
-	implementation 'org.springframework.boot:spring-boot-starter-web'
+	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
-	implementation 'org.springframework.boot:spring-boot-starter-aop'
+	implementation 'org.springframework.boot:spring-boot-starter-aspectj'
     implementation 'org.springframework.boot:spring-boot-starter-jdbc'
-	implementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter:3.0.4'
-	implementation 'io.github.resilience4j:resilience4j-spring-boot3:2.2.0'
+	implementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter:4.1.0'
+	implementation 'io.github.resilience4j:resilience4j-spring-boot4:2.4.0'
 	runtimeOnly 'org.postgresql:postgresql:42.7.14'
 
 	// Test related dependencies
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
-	testImplementation 'org.mockito:mockito-inline:5.2.0'
-	testImplementation 'org.hamcrest:hamcrest-library:2.2'
-	testImplementation 'org.junit.jupiter:junit-jupiter:5.11.0-M1'
-	testImplementation 'org.assertj:assertj-core:3.27.7'
+	testImplementation 'org.junit.jupiter:junit-jupiter'
 }
 
 test {
@@ -92,12 +89,12 @@ configurations {
 }
 
 dependencies {
-    integrationTestImplementation 'org.junit.jupiter:junit-jupiter:5.11.0-M1'
-    integrationTestImplementation 'org.springframework.boot:spring-boot-starter-web'
+    integrationTestImplementation 'org.junit.jupiter:junit-jupiter'
+    integrationTestImplementation 'org.springframework.boot:spring-boot-starter-webmvc'
     integrationTestImplementation 'org.springframework.boot:spring-boot-starter-test'
     integrationTestImplementation 'org.springframework.boot:spring-boot-testcontainers'
-    integrationTestImplementation 'org.testcontainers:junit-jupiter'
-    integrationTestImplementation 'org.testcontainers:postgresql'
+    integrationTestImplementation 'org.testcontainers:testcontainers-junit-jupiter'
+    integrationTestImplementation 'org.testcontainers:testcontainers-postgresql'
 }
 
 // Self-contained: boots the app on a random port against a Postgres Testcontainer (requires Docker)
