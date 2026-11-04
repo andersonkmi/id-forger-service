@@ -1,5 +1,6 @@
 package org.codecraftlabs.idgenerator.controller.idgeneration;
 
+import org.codecraftlabs.idgenerator.controller.ApiPaths;
 import org.codecraftlabs.idgenerator.controller.IdResponse;
 import org.codecraftlabs.idgenerator.id.service.IdGenerationService;
 import org.codecraftlabs.idgenerator.id.service.IdNotGeneratedException;
@@ -29,7 +30,7 @@ import static org.springframework.http.ResponseEntity.status;
  * to retrieve newly generated identifiers under {@code /idgenerator/v1/ids}.
  */
 @RestController
-@RequestMapping("/idgenerator/v1")
+@RequestMapping(ApiPaths.V1)
 public class IdGenerationController {
     private static final Logger logger = LoggerFactory.getLogger(IdGenerationController.class);
     private final IdGenerationService idGenerationService;
