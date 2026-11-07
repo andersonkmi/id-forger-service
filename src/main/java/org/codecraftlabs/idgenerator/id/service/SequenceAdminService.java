@@ -2,20 +2,26 @@ package org.codecraftlabs.idgenerator.id.service;
 
 import org.codecraftlabs.idgenerator.controller.admin.SequenceDataResponse;
 import org.codecraftlabs.idgenerator.id.Sequence;
+import org.codecraftlabs.idgenerator.id.repository.DatabaseException;
+import org.codecraftlabs.idgenerator.id.repository.SequenceNotFoundException;
+import org.codecraftlabs.idgenerator.id.repository.UniqueIdMapperRepository;
 import org.springframework.stereotype.Service;
 
 import jakarta.annotation.Nonnull;
 
+import static java.lang.String.valueOf;
+
 /**
  * Application service that exposes sequence inspection and maintenance operations
- * via {@link IdSequenceService}.
+ * via {@link UniqueIdMapperRepository} and translates repository exceptions into
+ * service-layer exceptions.
  */
 @Service
 public class SequenceAdminService {
-    private final IdSequenceService idSequenceService;
+    private final UniqueIdMapperRepository uniqueIdMapperRepository;
 
-    public SequenceAdminService(@Nonnull IdSequenceService idSequenceService) {
-        this.idSequenceService = idSequenceService;
+    public SequenceAdminService(@Nonnull UniqueIdMapperRepository uniqueIdMapperRepository) {
+        this.uniqueIdMapperRepository = uniqueIdMapperRepository;
     }
 
     /**
@@ -23,10 +29,18 @@ public class SequenceAdminService {
      *
      * @param seriesName the series name
      * @return the current value as a string
+     * @throws InvalidSeriesException  if the series is not found
+     * @throws IdNotGeneratedException if the database operation fails
      */
     @Nonnull
     public String getCurrentValue(@Nonnull String seriesName) {
-        return idSequenceService.getCurrentValue(seriesName);
+        try {
+            return valueOf(uniqueIdMapperRepository.getCurrentId(seriesName));
+        } catch (SequenceNotFoundException exception) {
+            throw new InvalidSeriesException("Invalid series name provided", exception);
+        } catch (DatabaseException exception) {
+            throw new IdNotGeneratedException("Failed to generate id due to a database issue", exception);
+        }
     }
 
     /**
@@ -34,11 +48,19 @@ public class SequenceAdminService {
      *
      * @param sequenceName the series name used to look up the sequence
      * @return the {@link Sequence} metadata
+     * @throws InvalidSeriesException            if the series is not found
+     * @throws SequenceDetailsRetrievalException if the database operation fails
      */
     @Nonnull
     public SequenceDataResponse getSequenceDetails(@Nonnull String sequenceName) {
-        var sequence = this.idSequenceService.getSequenceDetails(sequenceName);
-        return convert(sequence);
+        try {
+            var sequence = this.uniqueIdMapperRepository.getSequenceDetails("public", sequenceName);
+            return convert(sequence);
+        } catch (SequenceNotFoundException exception) {
+            throw new InvalidSeriesException("Invalid series name provided", exception);
+        } catch (DatabaseException exception) {
+            throw new SequenceDetailsRetrievalException("Failed to get details about the sequence", exception);
+        }
     }
 
     /**
@@ -46,9 +68,17 @@ public class SequenceAdminService {
      *
      * @param name      the series name
      * @param lastValue the new last value to set
+     * @throws InvalidSeriesException                 if the series is not found
+     * @throws SequenceLastValueUpdateFailedException if the database operation fails
      */
     public void updateSequenceLastValue(@Nonnull String name, long lastValue) {
-        this.idSequenceService.updateSequenceLastValue(name, lastValue);
+        try {
+            this.uniqueIdMapperRepository.updateSequenceLastValue(name, lastValue);
+        } catch (SequenceNotFoundException exception) {
+            throw new InvalidSeriesException("Invalid series name provided", exception);
+        } catch (DatabaseException exception) {
+            throw new SequenceLastValueUpdateFailedException("Failed to update sequence last value", exception);
+        }
     }
 
     @Nonnull
