@@ -12,9 +12,9 @@ import java.util.Optional;
  */
 public enum SeriesToSequence {
     /** Standard default series backed by {@code default_sequence}. */
-    DEFAULT("STD", "default", "default_sequence"),
+    DEFAULT("STD", "default", "idfs_default"),
     /** Product series backed by {@code product_sequence}. */
-    PRODUCT("PROD", "product", "product_sequence");
+    PRODUCT("PROD", "product", "idfs_product");
 
     private final String prefix;
     private final String seriesName;

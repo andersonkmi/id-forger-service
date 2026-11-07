@@ -1,1 +1,1 @@
-create sequence default_sequence;
+create sequence idfs_default;
