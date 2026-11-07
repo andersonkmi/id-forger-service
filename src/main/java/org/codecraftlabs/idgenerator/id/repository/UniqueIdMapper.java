@@ -24,6 +24,8 @@ public interface UniqueIdMapper {
      */
     @Select("SELECT NEXTVAL(#{seriesName})")
     long getNextId(@Nonnull @Param("seriesName") String seriesName);
+
+
     /**
      * Retrieves the current value of the specified database sequence
      * without advancing it.
@@ -33,6 +35,7 @@ public interface UniqueIdMapper {
      */
     @Select("SELECT last_value FROM pg_sequences WHERE sequencename = #{sequenceName}")
     Long getCurrentSequenceValue(@Nonnull @Param("sequenceName") String sequenceName);
+
     /**
      * Retrieves the details of a database sequence, including its metadata.
      *
@@ -57,6 +60,8 @@ public interface UniqueIdMapper {
             @Arg(column = "last_value", javaType = Long.class)
     })
     Sequence getSequenceDetails(@Nonnull @Param("schema") String schema, @Nonnull @Param("name") String name);
+
+
     /**
      * Updates the last value of the specified database sequence.
      *
@@ -65,4 +70,43 @@ public interface UniqueIdMapper {
      */
     @Update("SELECT setval(#{name}, #{lastValue})")
     void updateSequenceLastValue(@Nonnull @Param("name") String name, @Param("lastValue") long lastValue);
+
+    /**
+     * Creates a new database sequence with the given configuration.
+     * <p>
+     * PostgreSQL DDL statements do not support bind parameters, so the schema and
+     * name are substituted directly into the statement. Callers must ensure these
+     * values are validated identifiers and never raw user input.
+     *
+     * @param schema      the database schema that will own the sequence
+     * @param name        the name of the sequence to create
+     * @param startValue  the value the sequence starts at
+     * @param incrementBy the step size between consecutive values
+     * @param minValue    the minimum allowed value
+     * @param maxValue    the maximum allowed value
+     * @param cacheSize   the number of values pre-allocated in memory
+     * @param cycle       {@code true} if the sequence should wrap around after reaching its max value
+     */
+    @Update("""
+            <script>
+            CREATE SEQUENCE ${schema}.${name}
+            START WITH ${startValue}
+            INCREMENT BY ${incrementBy}
+            MINVALUE ${minValue}
+            MAXVALUE ${maxValue}
+            CACHE ${cacheSize}
+            <choose>
+                <when test="cycle">CYCLE</when>
+                <otherwise>NO CYCLE</otherwise>
+            </choose>
+            </script>
+            """)
+    void createSequence(@Nonnull @Param("schema") String schema,
+                        @Nonnull @Param("name") String name,
+                        @Param("startValue") long startValue,
+                        @Param("incrementBy") long incrementBy,
+                        @Param("minValue") long minValue,
+                        @Param("maxValue") long maxValue,
+                        @Param("cacheSize") long cacheSize,
+                        @Param("cycle") boolean cycle);
 }

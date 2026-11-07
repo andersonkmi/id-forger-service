@@ -99,6 +99,34 @@ public class UniqueIdMapperRepository {
     }
 
     /**
+     * Creates a database sequence with the given name.
+     *
+     * @param schema      the database schema that will own the sequence
+     * @param name        the name of the sequence to create
+     * @param startValue  the value the sequence starts at
+     * @param incrementBy the step size between consecutive values
+     * @param minValue    the minimum allowed value
+     * @param maxValue    the maximum allowed value
+     * @param cacheSize   the number of values pre-allocated in memory
+     * @param cycle       {@code true} if the sequence should wrap around after reaching its max value
+     * @throws DatabaseException if the database operation fails
+     */
+    public void createSequence(@Nonnull String schema,
+                               @Nonnull String name,
+                               long startValue,
+                               long incrementBy,
+                               long minValue,
+                               long maxValue,
+                               long cacheSize,
+                               boolean cycle) {
+        try {
+            uniqueIdMapper.createSequence(schema, name, startValue, incrementBy, minValue, maxValue, cacheSize, cycle);
+        } catch (DataAccessException exception) {
+            throw new DatabaseException("Failed to create sequence", exception);
+        }
+    }
+
+    /**
      * Resolves a logical series name to its corresponding database sequence name.
      *
      * @param type the logical series name

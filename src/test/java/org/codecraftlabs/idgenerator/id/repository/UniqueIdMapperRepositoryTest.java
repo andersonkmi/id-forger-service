@@ -11,6 +11,7 @@ import org.springframework.dao.QueryTimeoutException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doThrow;
@@ -102,5 +103,20 @@ class UniqueIdMapperRepositoryTest {
         assertThatExceptionOfType(SequenceLastValueUpdateFailedException.class)
                 .isThrownBy(() -> repository.updateSequenceLastValue("default", 500L))
                 .withMessage("Failed to update sequence last value");
+    }
+
+    @Test
+    void should_create_sequence() {
+        repository.createSequence("public", "idfs_new", 1L, 1L, 1L, Long.MAX_VALUE, 1L, false);
+        verify(uniqueIdMapper).createSequence("public", "idfs_new", 1L, 1L, 1L, Long.MAX_VALUE, 1L, false);
+    }
+
+    @Test
+    void should_throw_database_exception_on_data_access_error_for_create_sequence() {
+        doThrow(new QueryTimeoutException("db error")).when(uniqueIdMapper)
+                .createSequence(anyString(), anyString(), anyLong(), anyLong(), anyLong(), anyLong(), anyLong(), anyBoolean());
+        assertThatExceptionOfType(DatabaseException.class)
+                .isThrownBy(() -> repository.createSequence("public", "idfs_new", 1L, 1L, 1L, Long.MAX_VALUE, 1L, false))
+                .withMessage("Failed to create sequence");
     }
 }
