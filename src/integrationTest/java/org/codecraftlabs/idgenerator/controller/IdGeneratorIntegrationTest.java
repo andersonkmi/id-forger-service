@@ -71,7 +71,7 @@ public class IdGeneratorIntegrationTest {
                 .body(SequenceDetails.class);
         Assertions.assertThat(response).isNotNull();
         Assertions.assertThat(response.schema()).isEqualTo("public");
-        Assertions.assertThat(response.name()).isEqualTo("default_sequence");
+        Assertions.assertThat(response.name()).isEqualTo("idfs_default");
         Assertions.assertThat(response.startValue()).isEqualTo(1L);
         Assertions.assertThat(response.minValue()).isEqualTo(1L);
         Assertions.assertThat(response.maxValue()).isEqualTo(9223372036854775807L);
@@ -194,7 +194,7 @@ public class IdGeneratorIntegrationTest {
                 .body(SequenceDetails.class);
         Assertions.assertThat(response).isNotNull();
         Assertions.assertThat(response.schema()).isEqualTo("public");
-        Assertions.assertThat(response.name()).isEqualTo("product_sequence");
+        Assertions.assertThat(response.name()).isEqualTo("idfs_product");
         Assertions.assertThat(response.startValue()).isEqualTo(1451000000L);
         Assertions.assertThat(response.minValue()).isEqualTo(1451000000L);
         Assertions.assertThat(response.maxValue()).isEqualTo(1451999999L);

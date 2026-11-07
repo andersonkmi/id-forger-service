@@ -69,13 +69,13 @@ The service requires a PostgreSQL database. A ready-to-use image is defined in `
 Build the image:
 
 ```bash
-docker build -t codecraftlabs/idgeneratordb:1.0.0 docker/pgsql
+docker image build -t codecraftlabs/id-forger-service-dev:1.0.0 docker/pgsql
 ```
 
 Create and start the container. The image has no built-in password, so `POSTGRES_PASSWORD` must be set when it starts:
 
 ```bash
-docker run -d --name id-generator-db -p 5432:5432 -e POSTGRES_PASSWORD=idgen -v id-generator-pgdata:/var/lib/postgresql/data codecraftlabs/idgeneratordb:1.0.0
+docker run -d --name id-forger-dev-db -p 5432:5432 -e POSTGRES_PASSWORD=idgen -v id-forger-dev-db-pgdata:/var/lib/postgresql/data codecraftlabs/id-forger-service-dev:1.0.0
 ```
 
 Default connection settings for the `local` profile:
@@ -95,7 +95,7 @@ The default user and password only exist in the `local` profile (`application-lo
 Verify the database:
 
 ```bash
-docker exec -it id-generator-db psql -U idgen -d idgenerator -c "SELECT sequencename FROM pg_sequences;"
+docker exec -it id-forger-dev-db psql -U idgen -d idgenerator -c "SELECT sequencename FROM pg_sequences;"
 ```
 
 ### 2. Run the application
