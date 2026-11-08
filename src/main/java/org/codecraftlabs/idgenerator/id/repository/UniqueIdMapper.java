@@ -1,6 +1,7 @@
 package org.codecraftlabs.idgenerator.id.repository;
 
 import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 import org.apache.ibatis.annotations.Arg;
 import org.apache.ibatis.annotations.ConstructorArgs;
 import org.apache.ibatis.annotations.Mapper;
@@ -84,29 +85,20 @@ public interface UniqueIdMapper {
      * @param incrementBy the step size between consecutive values
      * @param minValue    the minimum allowed value
      * @param maxValue    the maximum allowed value
-     * @param cacheSize   the number of values pre-allocated in memory
-     * @param cycle       {@code true} if the sequence should wrap around after reaching its max value
      */
     @Update("""
             <script>
             CREATE SEQUENCE ${schema}.${name}
-            START WITH ${startValue}
-            INCREMENT BY ${incrementBy}
-            MINVALUE ${minValue}
-            MAXVALUE ${maxValue}
-            CACHE ${cacheSize}
-            <choose>
-                <when test="cycle">CYCLE</when>
-                <otherwise>NO CYCLE</otherwise>
-            </choose>
+            <if test="startValue != null">START WITH ${startValue}</if>
+            <if test="incrementBy != null">INCREMENT BY ${incrementBy}</if>
+            <if test="minValue != null">MINVALUE ${minValue}</if>
+            <if test="maxValue != null">MAXVALUE ${maxValue}</if>
             </script>
             """)
     void createSequence(@Nonnull @Param("schema") String schema,
                         @Nonnull @Param("name") String name,
-                        @Param("startValue") long startValue,
-                        @Param("incrementBy") long incrementBy,
-                        @Param("minValue") long minValue,
-                        @Param("maxValue") long maxValue,
-                        @Param("cacheSize") long cacheSize,
-                        @Param("cycle") boolean cycle);
+                        @Nullable @Param("startValue") Long startValue,
+                        @Nullable @Param("incrementBy") Long incrementBy,
+                        @Nullable @Param("minValue") Long minValue,
+                        @Nullable @Param("maxValue") Long maxValue);
 }

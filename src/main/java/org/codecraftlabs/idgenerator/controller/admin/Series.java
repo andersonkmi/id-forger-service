@@ -1,6 +1,7 @@
 package org.codecraftlabs.idgenerator.controller.admin;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
@@ -16,9 +17,11 @@ import jakarta.validation.constraints.Size;
 public class Series {
     @NotBlank
     @Size(max = 50, message = "name must be at most 10 characters long")
+    @Pattern(regexp = "^[a-z0-9]+$", message = "name must contain only lowercase letters and digits")
     private String name;
 
     @NotBlank
+    @Pattern(regexp = "^[a-zA-Z0-9]+$", message = "prefix must contain only letters and digits")
     @Size(max = 10, message = "prefix must be at most 10 characters long")
     private String prefix;
 
