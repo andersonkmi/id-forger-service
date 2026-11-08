@@ -31,6 +31,7 @@ import static org.springframework.http.ResponseEntity.status;
  */
 @RestController
 @RequestMapping(ApiPaths.BASE)
+@SuppressWarnings({"MVCPathVariableInspection", "SpringApiVersioningConfigurationInspection"})
 public class IdGenerationController {
     private static final Logger logger = LoggerFactory.getLogger(IdGenerationController.class);
     private final IdGenerationService idGenerationService;
