@@ -98,7 +98,7 @@ public class SequenceAdminService {
      */
     public void updateSequenceLastValue(@Nonnull String name, long lastValue) {
         try {
-            this.uniqueIdMapperRepository.updateSequenceLastValue(name, lastValue);
+            this.uniqueIdMapperRepository.updateSequenceLastValue(addSequenceNamePrefix(name), lastValue);
         } catch (SequenceNotFoundException exception) {
             throw new InvalidSeriesException("Invalid series name provided", exception);
         } catch (DatabaseException exception) {

@@ -30,52 +30,38 @@ class UniqueIdMapperRepositoryTest {
     private UniqueIdMapperRepository repository;
 
     @Test
-    void should_return_next_id_when_series_exists() {
+    void should_return_next_id_for_sequence() {
         when(uniqueIdMapper.getNextId("idfs_default")).thenReturn(42L);
-        assertThat(repository.getNextId("default")).isEqualTo(42L);
-    }
-
-    @Test
-    void should_throw_sequence_not_found_when_series_unknown_for_next_id() {
-        assertThatExceptionOfType(SequenceNotFoundException.class)
-                .isThrownBy(() -> repository.getNextId("unknown"))
-                .withMessage("Invalid sequence name");
+        assertThat(repository.getNextId("idfs_default")).isEqualTo(42L);
     }
 
     @Test
     void should_throw_database_exception_on_data_access_error_for_next_id() {
         when(uniqueIdMapper.getNextId("idfs_default")).thenThrow(new QueryTimeoutException("timeout"));
         assertThatExceptionOfType(DatabaseException.class)
-                .isThrownBy(() -> repository.getNextId("default"))
+                .isThrownBy(() -> repository.getNextId("idfs_default"))
                 .withMessage("Failed to get the next sequence value");
     }
 
     @Test
-    void should_return_current_id_when_series_exists() {
+    void should_return_current_id_for_sequence() {
         when(uniqueIdMapper.getCurrentSequenceValue("idfs_default")).thenReturn(99L);
-        assertThat(repository.getCurrentId("default")).isEqualTo(99L);
+        assertThat(repository.getCurrentId("idfs_default")).isEqualTo(99L);
     }
 
     @Test
     void should_throw_database_exception_when_sequence_has_no_current_value() {
         when(uniqueIdMapper.getCurrentSequenceValue("idfs_default")).thenReturn(null);
         assertThatExceptionOfType(DatabaseException.class)
-                .isThrownBy(() -> repository.getCurrentId("default"))
+                .isThrownBy(() -> repository.getCurrentId("idfs_default"))
                 .withMessage("Sequence 'idfs_default' has no current value (never called)");
-    }
-
-    @Test
-    void should_throw_sequence_not_found_when_series_unknown_for_current_id() {
-        assertThatExceptionOfType(SequenceNotFoundException.class)
-                .isThrownBy(() -> repository.getCurrentId("unknown"))
-                .withMessage("Invalid sequence name");
     }
 
     @Test
     void should_throw_database_exception_on_data_access_error_for_current_id() {
         when(uniqueIdMapper.getCurrentSequenceValue("idfs_default")).thenThrow(new QueryTimeoutException("timeout"));
         assertThatExceptionOfType(DatabaseException.class)
-                .isThrownBy(() -> repository.getCurrentId("default"))
+                .isThrownBy(() -> repository.getCurrentId("idfs_default"))
                 .withMessage("Failed to get the current sequence value");
     }
 
@@ -83,19 +69,20 @@ class UniqueIdMapperRepositoryTest {
     void should_return_sequence_details() {
         Sequence expected = new Sequence("public", "idfs_default", 1L, 1L, Long.MAX_VALUE, 1L, 1L, false, 10L);
         when(uniqueIdMapper.getSequenceDetails("public", "idfs_default")).thenReturn(expected);
-        assertThat(repository.getSequenceDetails("public", "default")).isSameAs(expected);
+        assertThat(repository.getSequenceDetails("public", "idfs_default")).isSameAs(expected);
     }
 
     @Test
-    void should_throw_sequence_not_found_when_series_unknown_for_sequence_details() {
-        assertThatExceptionOfType(SequenceNotFoundException.class)
-                .isThrownBy(() -> repository.getSequenceDetails("public", "unknown"))
-                .withMessage("Invalid sequence name");
+    void should_throw_database_exception_on_data_access_error_for_sequence_details() {
+        when(uniqueIdMapper.getSequenceDetails("public", "idfs_default")).thenThrow(new QueryTimeoutException("timeout"));
+        assertThatExceptionOfType(DatabaseException.class)
+                .isThrownBy(() -> repository.getSequenceDetails("public", "idfs_default"))
+                .withMessage("Failed to retrieve sequence details");
     }
 
     @Test
     void should_update_sequence_last_value() {
-        repository.updateSequenceLastValue("default", 500L);
+        repository.updateSequenceLastValue("idfs_default", 500L);
         verify(uniqueIdMapper).updateSequenceLastValue("idfs_default", 500L);
     }
 
@@ -103,7 +90,7 @@ class UniqueIdMapperRepositoryTest {
     void should_throw_update_failed_exception_on_database_error() {
         doThrow(new QueryTimeoutException("db error")).when(uniqueIdMapper).updateSequenceLastValue(anyString(), anyLong());
         assertThatExceptionOfType(SequenceLastValueUpdateFailedException.class)
-                .isThrownBy(() -> repository.updateSequenceLastValue("default", 500L))
+                .isThrownBy(() -> repository.updateSequenceLastValue("idfs_default", 500L))
                 .withMessage("Failed to update sequence last value");
     }
 
