@@ -29,16 +29,19 @@ public class SequenceAdminService {
      * Numeric options left {@code null} in the request fall back to the database defaults.
      *
      * @param request the series definition
+     * @return the metadata of the newly created sequence
      * @throws SeriesNotCreatedException if the sequence already exists or the database operation fails
      */
-    public void createSeries(@Nonnull SeriesDataRequest request) {
+    @Nonnull
+    public SequenceDataResponse createSeries(@Nonnull SeriesDataRequest request) {
         try {
-            this.uniqueIdMapperRepository.createSequence(SCHEMA,
+            var sequence = this.uniqueIdMapperRepository.createSequence(SCHEMA,
                     request.name(),
                     request.startingValue(),
                     request.incrementBy(),
                     request.minimumValue(),
                     request.maximumValue());
+            return convert(sequence);
         } catch (DatabaseException exception) {
             throw new SeriesNotCreatedException(exception.getMessage(), exception);
         }

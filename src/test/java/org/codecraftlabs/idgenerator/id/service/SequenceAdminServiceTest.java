@@ -31,14 +31,20 @@ public class SequenceAdminServiceTest {
     // --- createSeries ---
 
     @Test
-    public void should_create_sequence_in_public_schema_with_request_values() {
+    public void should_create_sequence_in_public_schema_and_return_converted_details() {
+        when(uniqueIdRepository.createSequence("public", "orders", 100L, 5L, 10L, 1000L))
+                .thenReturn(new Sequence("public", "orders", 100L, 10L, 1000L, 5L, 1L, false, null));
+        SequenceDataResponse expected = new SequenceDataResponse("public", "orders", 100L, 10L, 1000L, 5L, 1L, false, null);
+
         SeriesDataRequest request = new SeriesDataRequest("orders", "ORD", 100L, 5L, 10L, 1000L);
-        sequenceAdminService.createSeries(request);
-        verify(uniqueIdRepository).createSequence("public", "orders", 100L, 5L, 10L, 1000L);
+        assertThat(sequenceAdminService.createSeries(request)).isEqualTo(expected);
     }
 
     @Test
     public void should_pass_null_optional_values_to_repository() {
+        when(uniqueIdRepository.createSequence("public", "orders", null, null, null, null))
+                .thenReturn(new Sequence("public", "orders", 1L, 1L, Long.MAX_VALUE, 1L, 1L, false, null));
+
         SeriesDataRequest request = new SeriesDataRequest("orders", "ORD", null, null, null, null);
         sequenceAdminService.createSeries(request);
         verify(uniqueIdRepository).createSequence("public", "orders", null, null, null, null);
@@ -47,7 +53,7 @@ public class SequenceAdminServiceTest {
     @Test
     public void when_database_error_on_create_should_throw_series_not_created_exception() {
         DatabaseException cause = new DatabaseException("Failed to create sequence");
-        doThrow(cause).when(uniqueIdRepository).createSequence("public", "orders", null, null, null, null);
+        when(uniqueIdRepository.createSequence("public", "orders", null, null, null, null)).thenThrow(cause);
         assertThatExceptionOfType(SeriesNotCreatedException.class)
                 .isThrownBy(() -> sequenceAdminService.createSeries(
                         new SeriesDataRequest("orders", "ORD", null, null, null, null)))
@@ -58,7 +64,7 @@ public class SequenceAdminServiceTest {
     @Test
     public void when_sequence_already_exists_should_throw_series_not_created_exception() {
         SequenceAlreadyExistsException cause = new SequenceAlreadyExistsException("Sequence already exists", new RuntimeException());
-        doThrow(cause).when(uniqueIdRepository).createSequence("public", "orders", null, null, null, null);
+        when(uniqueIdRepository.createSequence("public", "orders", null, null, null, null)).thenThrow(cause);
         assertThatExceptionOfType(SeriesNotCreatedException.class)
                 .isThrownBy(() -> sequenceAdminService.createSeries(
                         new SeriesDataRequest("orders", "ORD", null, null, null, null)))
