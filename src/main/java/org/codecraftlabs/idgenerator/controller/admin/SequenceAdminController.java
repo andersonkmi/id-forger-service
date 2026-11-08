@@ -2,6 +2,7 @@ package org.codecraftlabs.idgenerator.controller.admin;
 
 import io.github.resilience4j.bulkhead.BulkheadFullException;
 import io.github.resilience4j.bulkhead.annotation.Bulkhead;
+import jakarta.validation.Valid;
 import org.codecraftlabs.idgenerator.controller.ApiPaths;
 import org.codecraftlabs.idgenerator.controller.IdResponse;
 import org.codecraftlabs.idgenerator.id.service.IdNotGeneratedException;
@@ -19,6 +20,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -31,6 +33,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
+import static org.springframework.http.HttpStatus.CREATED;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 import static org.springframework.http.HttpStatus.OK;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
@@ -44,8 +47,9 @@ import static org.springframework.http.ResponseEntity.status;
  */
 @RestController
 @RequestMapping(ApiPaths.BASE)
+@SuppressWarnings({"MVCPathVariableInspection", "SpringApiVersioningConfigurationInspection"})
 public class SequenceAdminController {
-    private static final Logger logger = LoggerFactory.getLogger(SequenceAdminController.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(SequenceAdminController.class);
     private final SequenceAdminService sequenceAdminService;
 
     /**
@@ -53,6 +57,16 @@ public class SequenceAdminController {
      */
     public SequenceAdminController(@Nonnull SequenceAdminService sequenceAdminService) {
         this.sequenceAdminService = sequenceAdminService;
+    }
+
+
+    @Bulkhead(name = "admin", type = Bulkhead.Type.SEMAPHORE)
+    @PostMapping(value = "/series",
+            version = ApiPaths.V1,
+            produces = APPLICATION_JSON_VALUE,
+            consumes = APPLICATION_JSON_VALUE)
+    public ResponseEntity<Series> createSeries(@Valid @RequestBody Series request) {
+        return status(CREATED).body(request);
     }
 
     /**
@@ -63,17 +77,17 @@ public class SequenceAdminController {
      * @return HTTP 200 with the new last value, or 400 if the update fails
      */
     @Bulkhead(name = "admin", type = Bulkhead.Type.SEMAPHORE)
-    @PatchMapping(value = "/ids/{seriesName}", version = ApiPaths.V1, produces = APPLICATION_JSON_VALUE, consumes = APPLICATION_JSON_VALUE)
+    @PatchMapping(value = "/series/{seriesName}", version = ApiPaths.V1, produces = APPLICATION_JSON_VALUE, consumes = APPLICATION_JSON_VALUE)
     public ResponseEntity<IdResponse> changeLastValue(@PathVariable String seriesName,
                                                       @RequestBody SeriesLastValue seriesLastValue) {
         try {
             this.sequenceAdminService.updateSequenceLastValue(seriesName, seriesLastValue.newLastValue());
             return status(OK).body(new IdResponse(String.valueOf(seriesLastValue.newLastValue())));
         } catch (SequenceLastValueUpdateFailedException exception) {
-            logger.error("Could not update the last value", exception);
+            LOGGER.error("Could not update the last value", exception);
             throw new ResponseStatusException(BAD_REQUEST, "Could not update the last value", exception);
         } catch (InvalidSeriesException exception) {
-            logger.error("Series name is invalid", exception);
+            LOGGER.error("Series name is invalid", exception);
             throw new ResponseStatusException(NOT_FOUND, "Series name is invalid", exception);
         }
     }
@@ -85,16 +99,16 @@ public class SequenceAdminController {
      * @return HTTP 200 with the current value, 404 if the series is unknown, or 400 on error
      */
     @Bulkhead(name = "admin", type = Bulkhead.Type.SEMAPHORE)
-    @GetMapping(value = "/ids/{seriesName}/currentValue", version = ApiPaths.V1, produces = APPLICATION_JSON_VALUE)
+    @GetMapping(value = "/series/{seriesName}/currentValue", version = ApiPaths.V1, produces = APPLICATION_JSON_VALUE)
     public ResponseEntity<IdResponse> getCurrentId(@PathVariable String seriesName) {
         try {
             String currentValue = this.sequenceAdminService.getCurrentValue(seriesName);
             return status(OK).body(new IdResponse(currentValue));
         } catch (IdNotGeneratedException exception) {
-            logger.error("Could not retrieve current value", exception);
+            LOGGER.error("Could not retrieve current value", exception);
             throw new ResponseStatusException(BAD_REQUEST, "Could not retrieve current value", exception);
         } catch (InvalidSeriesException exception) {
-            logger.error("Series name is invalid", exception);
+            LOGGER.error("Series name is invalid", exception);
             throw new ResponseStatusException(NOT_FOUND, "Series name is invalid", exception);
         }
     }
@@ -106,17 +120,17 @@ public class SequenceAdminController {
      * @return HTTP 200 with {@link SequenceDataResponse} details, 404 if the series is unknown, or 400 on error
      */
     @Bulkhead(name = "admin", type = Bulkhead.Type.SEMAPHORE)
-    @GetMapping(value = "/ids/{seriesName}/details", version = ApiPaths.V1,
+    @GetMapping(value = "/series/{seriesName}/details", version = ApiPaths.V1,
             produces = APPLICATION_JSON_VALUE)
     public ResponseEntity<SequenceDataResponse> getSequenceDetails(@PathVariable String seriesName) {
         try {
             SequenceDataResponse sequenceDetails = this.sequenceAdminService.getSequenceDetails(seriesName);
             return status(OK).body(sequenceDetails);
         } catch (SequenceDetailsRetrievalException exception) {
-            logger.error("Could not retrieve sequence details", exception);
+            LOGGER.error("Could not retrieve sequence details", exception);
             throw new ResponseStatusException(BAD_REQUEST, "Could not retrieve sequence details", exception);
         } catch (InvalidSeriesException exception) {
-            logger.error("Series name is invalid", exception);
+            LOGGER.error("Series name is invalid", exception);
             throw new ResponseStatusException(NOT_FOUND, "Series name is invalid", exception);
         }
     }
@@ -131,7 +145,7 @@ public class SequenceAdminController {
      */
     @ExceptionHandler(BulkheadFullException.class)
     public ResponseEntity<String> handleBulkheadFull(BulkheadFullException ex) {
-        logger.warn("Admin bulkhead full, rejecting request", ex);
+        LOGGER.warn("Admin bulkhead full, rejecting request", ex);
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                 .header("Retry-After", "1")
                 .body("Admin endpoints are temporarily saturated, please retry shortly");

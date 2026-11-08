@@ -106,7 +106,12 @@ Locally with Gradle (`bootRun` activates the `local` profile):
 ./gradlew bootRun
 ```
 
-If you run the jar or start the application from an IDE, set `SPRING_PROFILES_ACTIVE=local`.
+Or running the Java command:
+
+```
+export SPRING_PROFILES_ACTIVE=local
+java -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=\*:5005 -jar ./build/libs/id-forger-service-1.2.0.jar --spring.profiles.active=local
+```
 
 Or with Docker:
 

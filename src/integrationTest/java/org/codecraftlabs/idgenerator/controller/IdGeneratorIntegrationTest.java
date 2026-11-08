@@ -66,7 +66,7 @@ public class IdGeneratorIntegrationTest {
     @Test
     public void testGetSequenceDetails() {
         SequenceDetails response = restClient.get()
-                .uri("/idgenerator/v1/ids/default/details")
+                .uri("/idgenerator/v1/series/default/details")
                 .retrieve()
                 .body(SequenceDetails.class);
         Assertions.assertThat(response).isNotNull();
@@ -170,14 +170,14 @@ public class IdGeneratorIntegrationTest {
     @Test
     public void testCurrentValueMatchesLastGenerated() {
         String id = getId("/idgenerator/v1/ids/default");
-        Assertions.assertThat(getId("/idgenerator/v1/ids/default/currentValue")).isEqualTo(id);
+        Assertions.assertThat(getId("/idgenerator/v1/series/default/currentValue")).isEqualTo(id);
     }
 
     @Test
     public void testCurrentValueDoesNotAdvanceSequence() {
         getId("/idgenerator/v1/ids/default");
-        String first = getId("/idgenerator/v1/ids/default/currentValue");
-        String second = getId("/idgenerator/v1/ids/default/currentValue");
+        String first = getId("/idgenerator/v1/series/default/currentValue");
+        String second = getId("/idgenerator/v1/series/default/currentValue");
         Assertions.assertThat(second).isEqualTo(first);
     }
 
@@ -189,7 +189,7 @@ public class IdGeneratorIntegrationTest {
     @Test
     public void testGetProductSequenceDetails() {
         SequenceDetails response = restClient.get()
-                .uri("/idgenerator/v1/ids/product/details")
+                .uri("/idgenerator/v1/series/product/details")
                 .retrieve()
                 .body(SequenceDetails.class);
         Assertions.assertThat(response).isNotNull();
@@ -203,7 +203,7 @@ public class IdGeneratorIntegrationTest {
 
     @Test
     public void testDetailsInvalidSeriesReturns404() {
-        assertGetFails("/idgenerator/v1/ids/fake/details", "404 Not Found");
+        assertGetFails("/idgenerator/v1/series/fake/details", "404 Not Found");
     }
 
     @Test
@@ -240,7 +240,7 @@ public class IdGeneratorIntegrationTest {
 
     private IdResponse patchLastValue(String series, long newLastValue) {
         return restClient.patch()
-                .uri("/idgenerator/v1/ids/" + series)
+                .uri("/idgenerator/v1/series/" + series)
                 .body(Map.of("newLastValue", newLastValue))
                 .retrieve()
                 .body(IdResponse.class);
