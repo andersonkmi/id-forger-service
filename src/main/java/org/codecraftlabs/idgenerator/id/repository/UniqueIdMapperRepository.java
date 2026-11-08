@@ -7,6 +7,7 @@ import org.codecraftlabs.idgenerator.id.series.SeriesToSequence;
 import org.codecraftlabs.idgenerator.id.service.SequenceLastValueUpdateFailedException;
 import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.SQLException;
 
@@ -103,7 +104,9 @@ public class UniqueIdMapperRepository {
     }
 
     /**
-     * Creates a database sequence with the given name.
+     * Creates a database sequence with the given name and returns its metadata.
+     * The creation and the metadata lookup run in a single transaction, so the
+     * sequence is rolled back if it cannot be read back.
      *
      * @param schema      the database schema that will own the sequence
      * @param name        the name of the sequence to create
@@ -111,10 +114,13 @@ public class UniqueIdMapperRepository {
      * @param incrementBy the step size between consecutive values
      * @param minValue    the minimum allowed value
      * @param maxValue    the maximum allowed value
+     * @return the metadata of the newly created sequence
      * @throws SequenceAlreadyExistsException if a sequence with the same name already exists
      * @throws DatabaseException if the database operation fails
      */
-    public void createSequence(@Nonnull String schema,
+    @Nonnull
+    @Transactional
+    public Sequence createSequence(@Nonnull String schema,
                                @Nonnull String name,
                                @Nullable Long startValue,
                                @Nullable Long incrementBy,
@@ -122,6 +128,11 @@ public class UniqueIdMapperRepository {
                                @Nullable Long maxValue) {
         try {
             uniqueIdMapper.createSequence(schema, name, startValue, incrementBy, minValue, maxValue);
+            Sequence sequence = uniqueIdMapper.getSequenceDetails(schema, name);
+            if (sequence == null) {
+                throw new DatabaseException("Created sequence could not be read back");
+            }
+            return sequence;
         } catch (DataAccessException exception) {
             if (exception.getMostSpecificCause() instanceof SQLException sqlException
                     && DUPLICATE_TABLE_SQL_STATE.equals(sqlException.getSQLState())) {

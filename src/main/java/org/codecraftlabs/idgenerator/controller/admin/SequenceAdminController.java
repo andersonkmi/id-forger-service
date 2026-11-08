@@ -78,8 +78,10 @@ public class SequenceAdminController {
     public ResponseEntity<Series> createSeries(@Valid @RequestBody Series request) {
         try {
             var convertedRequest = convert(request);
-            this.sequenceAdminService.createSeries(convertedRequest);
-            return status(CREATED).body(request);
+            var series = this.sequenceAdminService.createSeries(convertedRequest);
+            var convertedResponse = convertFrom(series);
+            convertedResponse.setPrefix(request.getPrefix());
+            return status(CREATED).body(convertedResponse);
         } catch (SeriesNotCreatedException exception) {
             LOGGER.error("Could not create new series", exception);
             throw new ResponseStatusException(BAD_REQUEST, exception.getMessage(), exception);
@@ -201,5 +203,16 @@ public class SequenceAdminController {
                 from.getIncrementBy(),
                 from.getMinimumValue(),
                 from.getMaximumValue());
+    }
+
+    @Nonnull
+    private Series convertFrom(@Nonnull SequenceDataResponse response) {
+        Series convertedResponse = new Series();
+        convertedResponse.setName(response.name());
+        convertedResponse.setStartingValue(response.startValue());
+        convertedResponse.setIncrementBy(response.incrementBy());
+        convertedResponse.setMinimumValue(response.minValue());
+        convertedResponse.setMaximumValue(response.maxValue());
+        return convertedResponse;
     }
 }

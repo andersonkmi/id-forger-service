@@ -108,15 +108,37 @@ class UniqueIdMapperRepositoryTest {
     }
 
     @Test
-    void should_create_sequence() {
-        repository.createSequence("public", "idfs_new", 1L, 1L, 1L, Long.MAX_VALUE);
+    void should_create_sequence_and_return_its_details() {
+        Sequence created = new Sequence("public", "idfs_new", 1L, 1L, Long.MAX_VALUE, 1L, 1L, false, null);
+        when(uniqueIdMapper.getSequenceDetails("public", "idfs_new")).thenReturn(created);
+
+        assertThat(repository.createSequence("public", "idfs_new", 1L, 1L, 1L, Long.MAX_VALUE)).isEqualTo(created);
         verify(uniqueIdMapper).createSequence("public", "idfs_new", 1L, 1L, 1L, Long.MAX_VALUE);
     }
 
     @Test
     void should_create_sequence_with_optional_values_omitted() {
+        when(uniqueIdMapper.getSequenceDetails("public", "idfs_new"))
+                .thenReturn(new Sequence("public", "idfs_new", 1L, 1L, Long.MAX_VALUE, 1L, 1L, false, null));
+
         repository.createSequence("public", "idfs_new", null, null, null, null);
         verify(uniqueIdMapper).createSequence("public", "idfs_new", null, null, null, null);
+    }
+
+    @Test
+    void should_throw_database_exception_when_created_sequence_cannot_be_read_back() {
+        when(uniqueIdMapper.getSequenceDetails("public", "idfs_new")).thenReturn(null);
+        assertThatExceptionOfType(DatabaseException.class)
+                .isThrownBy(() -> repository.createSequence("public", "idfs_new", null, null, null, null))
+                .withMessage("Created sequence could not be read back");
+    }
+
+    @Test
+    void should_throw_database_exception_on_data_access_error_when_reading_back_created_sequence() {
+        when(uniqueIdMapper.getSequenceDetails("public", "idfs_new")).thenThrow(new QueryTimeoutException("db error"));
+        assertThatExceptionOfType(DatabaseException.class)
+                .isThrownBy(() -> repository.createSequence("public", "idfs_new", null, null, null, null))
+                .withMessage("Failed to create sequence");
     }
 
     @Test
