@@ -77,7 +77,10 @@ public class SequenceAdminController {
      * @return HTTP 200 with the new last value, or 400 if the update fails
      */
     @Bulkhead(name = "admin", type = Bulkhead.Type.SEMAPHORE)
-    @PatchMapping(value = "/series/{seriesName}", version = ApiPaths.V1, produces = APPLICATION_JSON_VALUE, consumes = APPLICATION_JSON_VALUE)
+    @PatchMapping(value = "/series/{seriesName}",
+            version = ApiPaths.V1,
+            produces = APPLICATION_JSON_VALUE,
+            consumes = APPLICATION_JSON_VALUE)
     public ResponseEntity<IdResponse> changeLastValue(@PathVariable String seriesName,
                                                       @RequestBody SeriesLastValue seriesLastValue) {
         try {
@@ -99,7 +102,9 @@ public class SequenceAdminController {
      * @return HTTP 200 with the current value, 404 if the series is unknown, or 400 on error
      */
     @Bulkhead(name = "admin", type = Bulkhead.Type.SEMAPHORE)
-    @GetMapping(value = "/series/{seriesName}/currentValue", version = ApiPaths.V1, produces = APPLICATION_JSON_VALUE)
+    @GetMapping(value = "/series/{seriesName}/currentValue",
+            version = ApiPaths.V1,
+            produces = APPLICATION_JSON_VALUE)
     public ResponseEntity<IdResponse> getCurrentId(@PathVariable String seriesName) {
         try {
             String currentValue = this.sequenceAdminService.getCurrentValue(seriesName);
@@ -120,7 +125,8 @@ public class SequenceAdminController {
      * @return HTTP 200 with {@link SequenceDataResponse} details, 404 if the series is unknown, or 400 on error
      */
     @Bulkhead(name = "admin", type = Bulkhead.Type.SEMAPHORE)
-    @GetMapping(value = "/series/{seriesName}/details", version = ApiPaths.V1,
+    @GetMapping(value = "/series/{seriesName}/details",
+            version = ApiPaths.V1,
             produces = APPLICATION_JSON_VALUE)
     public ResponseEntity<SequenceDataResponse> getSequenceDetails(@PathVariable String seriesName) {
         try {
