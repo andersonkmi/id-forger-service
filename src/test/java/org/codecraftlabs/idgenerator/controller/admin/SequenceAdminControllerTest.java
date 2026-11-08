@@ -10,7 +10,7 @@ import org.codecraftlabs.idgenerator.id.service.InvalidSeriesException;
 import org.codecraftlabs.idgenerator.id.service.SequenceAdminService;
 import org.codecraftlabs.idgenerator.id.service.SequenceDetailsRetrievalException;
 import org.codecraftlabs.idgenerator.id.service.SequenceLastValueUpdateFailedException;
-import org.codecraftlabs.idgenerator.id.service.SeriesDataRequest;
+import org.codecraftlabs.idgenerator.id.service.SeriesData;
 import org.codecraftlabs.idgenerator.id.service.SeriesNotCreatedException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -64,8 +64,8 @@ public class SequenceAdminControllerTest {
 
     @Test
     public void should_create_series_and_return_201_with_created_sequence_details() throws Exception {
-        when(sequenceAdminService.createSeries(new SeriesDataRequest("orders", "ORD", 100L, 5L, 10L, 1000L)))
-                .thenReturn(new SequenceDataResponse("public", "orders", 100L, 10L, 1000L, 5L, 1L, false, null));
+        when(sequenceAdminService.createSeries(new SeriesData("orders", "ORD", 100L, 5L, 10L, 1000L)))
+                .thenReturn(new SeriesData("orders", "ORD", 100L, 5L, 10L, 1000L));
 
         mockMvc.perform(post("/idgenerator/v1/series")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -82,13 +82,13 @@ public class SequenceAdminControllerTest {
                 .andExpect(jsonPath("$.minimumValue").value(10))
                 .andExpect(jsonPath("$.maximumValue").value(1000));
 
-        verify(sequenceAdminService).createSeries(new SeriesDataRequest("orders", "ORD", 100L, 5L, 10L, 1000L));
+        verify(sequenceAdminService).createSeries(new SeriesData("orders", "ORD", 100L, 5L, 10L, 1000L));
     }
 
     @Test
     public void should_create_series_with_only_required_fields_and_return_database_defaults() throws Exception {
-        when(sequenceAdminService.createSeries(new SeriesDataRequest("orders", "ORD", null, null, null, null)))
-                .thenReturn(new SequenceDataResponse("public", "orders", 1L, 1L, Long.MAX_VALUE, 1L, 1L, false, null));
+        when(sequenceAdminService.createSeries(new SeriesData("orders", "ORD", null, null, null, null)))
+                .thenReturn(new SeriesData("orders", "ORD", 1L, 1L, 1L, Long.MAX_VALUE));
 
         mockMvc.perform(post("/idgenerator/v1/series")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -101,12 +101,12 @@ public class SequenceAdminControllerTest {
                 .andExpect(jsonPath("$.minimumValue").value(1))
                 .andExpect(jsonPath("$.maximumValue").value(Long.MAX_VALUE));
 
-        verify(sequenceAdminService).createSeries(new SeriesDataRequest("orders", "ORD", null, null, null, null));
+        verify(sequenceAdminService).createSeries(new SeriesData("orders", "ORD", null, null, null, null));
     }
 
     @Test
     public void should_return_400_with_reason_when_series_not_created() throws Exception {
-        SeriesDataRequest expected = new SeriesDataRequest("orders", "ORD", null, null, null, null);
+        SeriesData expected = new SeriesData("orders", "ORD", null, null, null, null);
         when(sequenceAdminService.createSeries(expected))
                 .thenThrow(new SeriesNotCreatedException("Sequence already exists", new RuntimeException()));
 
