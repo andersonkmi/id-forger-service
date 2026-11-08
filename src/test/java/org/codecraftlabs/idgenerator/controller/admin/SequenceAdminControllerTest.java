@@ -10,6 +10,8 @@ import org.codecraftlabs.idgenerator.id.service.InvalidSeriesException;
 import org.codecraftlabs.idgenerator.id.service.SequenceAdminService;
 import org.codecraftlabs.idgenerator.id.service.SequenceDetailsRetrievalException;
 import org.codecraftlabs.idgenerator.id.service.SequenceLastValueUpdateFailedException;
+import org.codecraftlabs.idgenerator.id.service.SeriesDataRequest;
+import org.codecraftlabs.idgenerator.id.service.SeriesNotCreatedException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -56,6 +58,144 @@ public class SequenceAdminControllerTest {
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
                 .setApiVersionStrategy(ApiVersioningTestSupport.pathSegmentVersionStrategy())
                 .build();
+    }
+
+    // --- createSeries ---
+
+    @Test
+    public void should_create_series_and_return_201_with_request_body() throws Exception {
+        mockMvc.perform(post("/idgenerator/v1/series")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"orders","prefix":"ORD","startingValue":100,
+                                 "incrementBy":5,"minimumValue":10,"maximumValue":1000}
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.name").value("orders"))
+                .andExpect(jsonPath("$.prefix").value("ORD"))
+                .andExpect(jsonPath("$.startingValue").value(100))
+                .andExpect(jsonPath("$.incrementBy").value(5))
+                .andExpect(jsonPath("$.minimumValue").value(10))
+                .andExpect(jsonPath("$.maximumValue").value(1000));
+
+        verify(sequenceAdminService).createSeries(new SeriesDataRequest("orders", "ORD", 100L, 5L, 10L, 1000L));
+    }
+
+    @Test
+    public void should_create_series_with_only_required_fields() throws Exception {
+        mockMvc.perform(post("/idgenerator/v1/series")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"orders\",\"prefix\":\"ORD\"}"))
+                .andExpect(status().isCreated());
+
+        verify(sequenceAdminService).createSeries(new SeriesDataRequest("orders", "ORD", null, null, null, null));
+    }
+
+    @Test
+    public void should_return_400_with_reason_when_series_not_created() throws Exception {
+        SeriesDataRequest expected = new SeriesDataRequest("orders", "ORD", null, null, null, null);
+        doThrow(new SeriesNotCreatedException("Sequence already exists", new RuntimeException()))
+                .when(sequenceAdminService).createSeries(expected);
+
+        mockMvc.perform(post("/idgenerator/v1/series")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"orders\",\"prefix\":\"ORD\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(result -> assertThat(reasonOf(result.getResolvedException()))
+                        .isEqualTo("Sequence already exists"));
+    }
+
+    @Test
+    public void should_return_400_and_not_call_service_when_name_is_blank() throws Exception {
+        mockMvc.perform(post("/idgenerator/v1/series")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"\",\"prefix\":\"ORD\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.name").exists());
+
+        verifyNoInteractions(sequenceAdminService);
+    }
+
+    @Test
+    public void should_return_400_and_not_call_service_when_name_is_not_lowercase_alphanumeric() throws Exception {
+        mockMvc.perform(post("/idgenerator/v1/series")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Orders_1\",\"prefix\":\"ORD\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.name").value("name must contain only lowercase letters and digits"));
+
+        verifyNoInteractions(sequenceAdminService);
+    }
+
+    @Test
+    public void should_return_400_and_not_call_service_when_prefix_is_missing() throws Exception {
+        mockMvc.perform(post("/idgenerator/v1/series")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"orders\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.prefix").exists());
+
+        verifyNoInteractions(sequenceAdminService);
+    }
+
+    @Test
+    public void should_return_400_and_not_call_service_when_prefix_is_too_long() throws Exception {
+        mockMvc.perform(post("/idgenerator/v1/series")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"orders\",\"prefix\":\"ABCDEFGHIJK\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.prefix").value("prefix must be at most 10 characters long"));
+
+        verifyNoInteractions(sequenceAdminService);
+    }
+
+    @Test
+    public void should_return_400_and_not_call_service_when_prefix_has_invalid_characters() throws Exception {
+        mockMvc.perform(post("/idgenerator/v1/series")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"orders\",\"prefix\":\"OR-D\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.prefix").value("prefix must contain only letters and digits"));
+
+        verifyNoInteractions(sequenceAdminService);
+    }
+
+    @Test
+    public void should_return_400_and_not_call_service_when_numeric_values_are_invalid() throws Exception {
+        mockMvc.perform(post("/idgenerator/v1/series")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"orders","prefix":"ORD","startingValue":-1,
+                                 "incrementBy":0,"minimumValue":-1,"maximumValue":-1}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.startingValue").value("startingValue must not be negative"))
+                .andExpect(jsonPath("$.incrementBy").value("incrementBy must be positive"))
+                .andExpect(jsonPath("$.minimumValue").value("minimumValue must not be negative"))
+                .andExpect(jsonPath("$.maximumValue").value("maximumValue must not be negative"));
+
+        verifyNoInteractions(sequenceAdminService);
+    }
+
+    @Test
+    public void should_return_415_when_create_content_type_is_not_json() throws Exception {
+        mockMvc.perform(post("/idgenerator/v1/series")
+                        .contentType(MediaType.TEXT_PLAIN)
+                        .content("orders"))
+                .andExpect(status().isUnsupportedMediaType());
+
+        verifyNoInteractions(sequenceAdminService);
+    }
+
+    @Test
+    public void should_return_400_and_not_call_service_when_create_api_version_is_unsupported() throws Exception {
+        mockMvc.perform(post("/idgenerator/v2/series")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"orders\",\"prefix\":\"ORD\"}"))
+                .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(sequenceAdminService);
     }
 
     @Test

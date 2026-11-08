@@ -62,6 +62,14 @@ public class SequenceAdminController {
     }
 
 
+    /**
+     * Creates a new series backed by a database sequence. Numeric options omitted from the
+     * request fall back to the database defaults.
+     *
+     * @param request the validated series definition
+     * @return HTTP 201 with the submitted series, 400 if validation fails or the series
+     *         could not be created (e.g. it already exists)
+     */
     @Bulkhead(name = "admin", type = Bulkhead.Type.SEMAPHORE)
     @PostMapping(value = "/series",
             version = ApiPaths.V1,
