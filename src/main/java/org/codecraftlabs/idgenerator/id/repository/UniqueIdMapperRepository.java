@@ -74,7 +74,8 @@ public class UniqueIdMapperRepository {
      * @return a {@link Sequence} object containing the sequence metadata
      */
     @Nonnull
-    public Sequence getSequenceDetails(@Nonnull String schema, @Nonnull String sequenceName) {
+    public Sequence getSequenceDetails(@Nonnull String schema,
+                                       @Nonnull String sequenceName) {
         try {
             return uniqueIdMapper.getSequenceDetails(schema, sequenceName);
         } catch (DataAccessException exception) {
@@ -90,7 +91,8 @@ public class UniqueIdMapperRepository {
      * @param lastValue the new last value to set
      * @throws SequenceLastValueUpdateFailedException if the update fails
      */
-    public void updateSequenceLastValue(@Nonnull String sequenceName, long lastValue) {
+    public void updateSequenceLastValue(@Nonnull String sequenceName,
+                                        long lastValue) {
         try {
             this.uniqueIdMapper.updateSequenceLastValue(sequenceName, lastValue);
         } catch (DataAccessException exception) {
@@ -116,11 +118,11 @@ public class UniqueIdMapperRepository {
     @Nonnull
     @Transactional
     public Sequence createSequence(@Nonnull String schema,
-                               @Nonnull String name,
-                               @Nullable Long startValue,
-                               @Nullable Long incrementBy,
-                               @Nullable Long minValue,
-                               @Nullable Long maxValue) {
+                                   @Nonnull String name,
+                                   @Nullable Long startValue,
+                                   @Nullable Long incrementBy,
+                                   @Nullable Long minValue,
+                                   @Nullable Long maxValue) {
         try {
             uniqueIdMapper.createSequence(schema, name, startValue, incrementBy, minValue, maxValue);
             Sequence sequence = uniqueIdMapper.getSequenceDetails(schema, name);
