@@ -37,7 +37,9 @@ public class SequenceAdminService {
     @Nonnull
     public SeriesData createSeries(@Nonnull SeriesData request) {
         try {
-            var sequence = this.uniqueIdMapperRepository.createSequence(SCHEMA,
+            var sequence = this.uniqueIdMapperRepository.createSeries(SCHEMA,
+                    request.name(),
+                    request.prefix(),
                     addSequenceNamePrefix(request.name()),
                     request.startingValue(),
                     request.incrementBy(),

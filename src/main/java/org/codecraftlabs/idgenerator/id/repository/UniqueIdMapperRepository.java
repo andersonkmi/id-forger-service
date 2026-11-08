@@ -45,6 +45,15 @@ public class UniqueIdMapperRepository {
         }
     }
 
+    @Nonnull
+    public SeriesDetail getSeriesDetails(@Nonnull String name) {
+        try {
+            return uniqueIdMapper.getSeriesDetails(name);
+        } catch (DataAccessException exception) {
+            throw new DatabaseException("Failed to get series details", exception);
+        }
+    }
+
     /**
      * Retrieves the current ID for the given series without advancing
      * the underlying database sequence.
@@ -101,11 +110,14 @@ public class UniqueIdMapperRepository {
     }
 
     /**
-     * Creates a database sequence with the given name and returns its metadata.
-     * The creation and the metadata lookup run in a single transaction, so the
-     * sequence is rolled back if it cannot be read back.
+     * Creates a database sequence with the given name, registers the series in
+     * {@code series_details} and returns the sequence metadata. The creation, the
+     * registration and the metadata lookup run in a single transaction, so nothing
+     * is persisted if any step fails.
      *
      * @param schema      the database schema that will own the sequence
+     * @param seriesName  the series name to register
+     * @param prefix      the prefix applied to identifiers generated for the series
      * @param name        the name of the sequence to create
      * @param startValue  the value the sequence starts at
      * @param incrementBy the step size between consecutive values
@@ -117,14 +129,17 @@ public class UniqueIdMapperRepository {
      */
     @Nonnull
     @Transactional
-    public Sequence createSequence(@Nonnull String schema,
-                                   @Nonnull String name,
-                                   @Nullable Long startValue,
-                                   @Nullable Long incrementBy,
-                                   @Nullable Long minValue,
-                                   @Nullable Long maxValue) {
+    public Sequence createSeries(@Nonnull String schema,
+                                 @Nonnull String seriesName,
+                                 @Nonnull String prefix,
+                                 @Nonnull String name,
+                                 @Nullable Long startValue,
+                                 @Nullable Long incrementBy,
+                                 @Nullable Long minValue,
+                                 @Nullable Long maxValue) {
         try {
-            uniqueIdMapper.createSequence(schema, name, startValue, incrementBy, minValue, maxValue);
+            uniqueIdMapper.createSeries(schema, name, startValue, incrementBy, minValue, maxValue);
+            uniqueIdMapper.insertSeriesDetails(seriesName, name, prefix);
             Sequence sequence = uniqueIdMapper.getSequenceDetails(schema, name);
             if (sequence == null) {
                 throw new DatabaseException("Created sequence could not be read back");

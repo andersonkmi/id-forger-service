@@ -4,6 +4,7 @@ import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 import org.apache.ibatis.annotations.Arg;
 import org.apache.ibatis.annotations.ConstructorArgs;
+import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
@@ -62,6 +63,17 @@ public interface UniqueIdMapper {
     })
     Sequence getSequenceDetails(@Nonnull @Param("schema") String schema, @Nonnull @Param("name") String name);
 
+    @Select("""
+            SELECT sequence, prefix 
+            FROM series_details
+            WHERE name = #{seriesName};
+            """)
+    @ConstructorArgs({
+            @Arg(column = "sequence", javaType = String.class),
+            @Arg(column = "prefix", javaType = String.class)
+    })
+    SeriesDetail getSeriesDetails(@Nonnull @Param("name") String name);
+
 
     /**
      * Updates the last value of the specified database sequence.
@@ -95,10 +107,23 @@ public interface UniqueIdMapper {
             <if test="maxValue != null">MAXVALUE ${maxValue}</if>
             </script>
             """)
-    void createSequence(@Nonnull @Param("schema") String schema,
-                        @Nonnull @Param("name") String name,
-                        @Nullable @Param("startValue") Long startValue,
-                        @Nullable @Param("incrementBy") Long incrementBy,
-                        @Nullable @Param("minValue") Long minValue,
-                        @Nullable @Param("maxValue") Long maxValue);
+    void createSeries(@Nonnull @Param("schema") String schema,
+                      @Nonnull @Param("name") String name,
+                      @Nullable @Param("startValue") Long startValue,
+                      @Nullable @Param("incrementBy") Long incrementBy,
+                      @Nullable @Param("minValue") Long minValue,
+                      @Nullable @Param("maxValue") Long maxValue);
+
+    /**
+     * Registers a series in the {@code series_details} table, mapping it to its
+     * backing sequence and identifier prefix.
+     *
+     * @param name         the series name
+     * @param sequenceName the name of the backing database sequence
+     * @param prefix       the prefix applied to identifiers generated for the series
+     */
+    @Insert("INSERT INTO series_details (name, sequence, prefix) VALUES (#{name}, #{sequenceName}, #{prefix})")
+    void insertSeriesDetails(@Nonnull @Param("name") String name,
+                             @Nonnull @Param("sequenceName") String sequenceName,
+                             @Nonnull @Param("prefix") String prefix);
 }
