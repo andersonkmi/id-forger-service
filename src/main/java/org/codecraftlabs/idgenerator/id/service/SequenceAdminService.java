@@ -18,6 +18,8 @@ import static java.lang.String.valueOf;
 @Service
 public class SequenceAdminService {
     private static final String SCHEMA = "public";
+    private static final String SEQUENCE_NAME_PREFIX = "idfs_";
+
     private final UniqueIdMapperRepository uniqueIdMapperRepository;
 
     public SequenceAdminService(@Nonnull UniqueIdMapperRepository uniqueIdMapperRepository) {
@@ -33,15 +35,15 @@ public class SequenceAdminService {
      * @throws SeriesNotCreatedException if the sequence already exists or the database operation fails
      */
     @Nonnull
-    public SequenceDataResponse createSeries(@Nonnull SeriesDataRequest request) {
+    public SeriesData createSeries(@Nonnull SeriesData request) {
         try {
             var sequence = this.uniqueIdMapperRepository.createSequence(SCHEMA,
-                    request.name(),
+                    addSequenceNamePrefix(request.name()),
                     request.startingValue(),
                     request.incrementBy(),
                     request.minimumValue(),
                     request.maximumValue());
-            return convert(sequence);
+            return convert(request, sequence);
         } catch (DatabaseException exception) {
             throw new SeriesNotCreatedException(exception.getMessage(), exception);
         }
@@ -58,7 +60,7 @@ public class SequenceAdminService {
     @Nonnull
     public String getCurrentValue(@Nonnull String seriesName) {
         try {
-            return valueOf(uniqueIdMapperRepository.getCurrentId(seriesName));
+            return valueOf(uniqueIdMapperRepository.getCurrentId(addSequenceNamePrefix(seriesName)));
         } catch (SequenceNotFoundException exception) {
             throw new InvalidSeriesException("Invalid series name provided", exception);
         } catch (DatabaseException exception) {
@@ -77,7 +79,7 @@ public class SequenceAdminService {
     @Nonnull
     public SequenceDataResponse getSequenceDetails(@Nonnull String sequenceName) {
         try {
-            var sequence = this.uniqueIdMapperRepository.getSequenceDetails(SCHEMA, sequenceName);
+            var sequence = this.uniqueIdMapperRepository.getSequenceDetails(SCHEMA, addSequenceNamePrefix(sequenceName));
             return convert(sequence);
         } catch (SequenceNotFoundException exception) {
             throw new InvalidSeriesException("Invalid series name provided", exception);
@@ -105,6 +107,17 @@ public class SequenceAdminService {
     }
 
     @Nonnull
+    private SeriesData convert(@Nonnull SeriesData request,
+                               @Nonnull Sequence sequence) {
+        return new SeriesData(request.name(),
+                request.prefix(),
+                sequence.startValue(),
+                sequence.incrementBy(),
+                sequence.minValue(),
+                sequence.maxValue());
+    }
+
+    @Nonnull
     private SequenceDataResponse convert(@Nonnull Sequence sequence) {
         return new SequenceDataResponse(sequence.schema(),
                 sequence.name(),
@@ -115,5 +128,10 @@ public class SequenceAdminService {
                 sequence.cacheSize(),
                 sequence.cycle(),
                 sequence.lastValue());
+    }
+
+    @Nonnull
+    private String addSequenceNamePrefix(@Nonnull String name) {
+        return SEQUENCE_NAME_PREFIX + name;
     }
 }

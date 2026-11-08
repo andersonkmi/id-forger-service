@@ -10,7 +10,7 @@ import org.codecraftlabs.idgenerator.id.service.InvalidSeriesException;
 import org.codecraftlabs.idgenerator.id.service.SequenceAdminService;
 import org.codecraftlabs.idgenerator.id.service.SequenceDetailsRetrievalException;
 import org.codecraftlabs.idgenerator.id.service.SequenceLastValueUpdateFailedException;
-import org.codecraftlabs.idgenerator.id.service.SeriesDataRequest;
+import org.codecraftlabs.idgenerator.id.service.SeriesData;
 import org.codecraftlabs.idgenerator.id.service.SeriesNotCreatedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -196,8 +196,8 @@ public class SequenceAdminController {
     }
 
     @Nonnull
-    private SeriesDataRequest convert(@Nonnull Series from) {
-        return new SeriesDataRequest(from.getName(),
+    private SeriesData convert(@Nonnull Series from) {
+        return new SeriesData(from.getName(),
                 from.getPrefix(),
                 from.getStartingValue(),
                 from.getIncrementBy(),
@@ -206,13 +206,13 @@ public class SequenceAdminController {
     }
 
     @Nonnull
-    private Series convertFrom(@Nonnull SequenceDataResponse response) {
+    private Series convertFrom(@Nonnull SeriesData response) {
         Series convertedResponse = new Series();
         convertedResponse.setName(response.name());
-        convertedResponse.setStartingValue(response.startValue());
+        convertedResponse.setStartingValue(response.startingValue());
         convertedResponse.setIncrementBy(response.incrementBy());
-        convertedResponse.setMinimumValue(response.minValue());
-        convertedResponse.setMaximumValue(response.maxValue());
+        convertedResponse.setMinimumValue(response.minimumValue());
+        convertedResponse.setMaximumValue(response.maximumValue());
         return convertedResponse;
     }
 }

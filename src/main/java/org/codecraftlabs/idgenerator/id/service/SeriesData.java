@@ -13,10 +13,10 @@ package org.codecraftlabs.idgenerator.id.service;
  * @param minimumValue  the minimum allowed value, or {@code null} for the database default
  * @param maximumValue  the maximum allowed value, or {@code null} for the database default
  */
-public record SeriesDataRequest(String name,
-                                String prefix,
-                                Long startingValue,
-                                Long incrementBy,
-                                Long minimumValue,
-                                Long maximumValue) {
+public record SeriesData(String name,
+                         String prefix,
+                         Long startingValue,
+                         Long incrementBy,
+                         Long minimumValue,
+                         Long maximumValue) {
 }
