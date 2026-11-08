@@ -8,10 +8,12 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.QueryTimeoutException;
+import org.springframework.jdbc.BadSqlGrammarException;
+
+import java.sql.SQLException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doThrow;
@@ -107,16 +109,32 @@ class UniqueIdMapperRepositoryTest {
 
     @Test
     void should_create_sequence() {
-        repository.createSequence("public", "idfs_new", 1L, 1L, 1L, Long.MAX_VALUE, 1L, false);
-        verify(uniqueIdMapper).createSequence("public", "idfs_new", 1L, 1L, 1L, Long.MAX_VALUE, 1L, false);
+        repository.createSequence("public", "idfs_new", 1L, 1L, 1L, Long.MAX_VALUE);
+        verify(uniqueIdMapper).createSequence("public", "idfs_new", 1L, 1L, 1L, Long.MAX_VALUE);
+    }
+
+    @Test
+    void should_create_sequence_with_optional_values_omitted() {
+        repository.createSequence("public", "idfs_new", null, null, null, null);
+        verify(uniqueIdMapper).createSequence("public", "idfs_new", null, null, null, null);
     }
 
     @Test
     void should_throw_database_exception_on_data_access_error_for_create_sequence() {
         doThrow(new QueryTimeoutException("db error")).when(uniqueIdMapper)
-                .createSequence(anyString(), anyString(), anyLong(), anyLong(), anyLong(), anyLong(), anyLong(), anyBoolean());
+                .createSequence(anyString(), anyString(), anyLong(), anyLong(), anyLong(), anyLong());
         assertThatExceptionOfType(DatabaseException.class)
-                .isThrownBy(() -> repository.createSequence("public", "idfs_new", 1L, 1L, 1L, Long.MAX_VALUE, 1L, false))
+                .isThrownBy(() -> repository.createSequence("public", "idfs_new", 1L, 1L, 1L, Long.MAX_VALUE))
                 .withMessage("Failed to create sequence");
+    }
+
+    @Test
+    void should_throw_sequence_already_exists_exception_when_sequence_exists() {
+        SQLException duplicate = new SQLException("relation \"idfs_new\" already exists", "42P07");
+        doThrow(new BadSqlGrammarException("createSequence", "CREATE SEQUENCE public.idfs_new", duplicate))
+                .when(uniqueIdMapper).createSequence("public", "idfs_new", null, null, null, null);
+        assertThatExceptionOfType(SequenceAlreadyExistsException.class)
+                .isThrownBy(() -> repository.createSequence("public", "idfs_new", null, null, null, null))
+                .withMessage("Sequence already exists");
     }
 }

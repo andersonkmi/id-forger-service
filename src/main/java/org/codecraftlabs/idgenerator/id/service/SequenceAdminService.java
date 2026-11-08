@@ -1,13 +1,12 @@
 package org.codecraftlabs.idgenerator.id.service;
 
+import jakarta.annotation.Nonnull;
 import org.codecraftlabs.idgenerator.controller.admin.SequenceDataResponse;
 import org.codecraftlabs.idgenerator.id.Sequence;
 import org.codecraftlabs.idgenerator.id.repository.DatabaseException;
 import org.codecraftlabs.idgenerator.id.repository.SequenceNotFoundException;
 import org.codecraftlabs.idgenerator.id.repository.UniqueIdMapperRepository;
 import org.springframework.stereotype.Service;
-
-import jakarta.annotation.Nonnull;
 
 import static java.lang.String.valueOf;
 
@@ -18,10 +17,24 @@ import static java.lang.String.valueOf;
  */
 @Service
 public class SequenceAdminService {
+    private static final String SCHEMA = "public";
     private final UniqueIdMapperRepository uniqueIdMapperRepository;
 
     public SequenceAdminService(@Nonnull UniqueIdMapperRepository uniqueIdMapperRepository) {
         this.uniqueIdMapperRepository = uniqueIdMapperRepository;
+    }
+
+    public void createSeries(@Nonnull SeriesDataRequest request) {
+        try {
+            this.uniqueIdMapperRepository.createSequence(SCHEMA,
+                    request.name(),
+                    request.startingValue(),
+                    request.incrementBy(),
+                    request.minimumValue(),
+                    request.maximumValue());
+        } catch (DatabaseException exception) {
+            throw new SeriesNotCreatedException(exception.getMessage(), exception);
+        }
     }
 
     /**

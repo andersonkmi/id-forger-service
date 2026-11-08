@@ -1,11 +1,14 @@
 package org.codecraftlabs.idgenerator.id.repository;
 
 import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 import org.codecraftlabs.idgenerator.id.Sequence;
 import org.codecraftlabs.idgenerator.id.series.SeriesToSequence;
 import org.codecraftlabs.idgenerator.id.service.SequenceLastValueUpdateFailedException;
 import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Component;
+
+import java.sql.SQLException;
 
 /**
  * Repository component that wraps {@link UniqueIdMapper} to provide
@@ -14,6 +17,7 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class UniqueIdMapperRepository {
+    private static final String DUPLICATE_TABLE_SQL_STATE = "42P07";
     private final UniqueIdMapper uniqueIdMapper;
 
     /**
@@ -107,21 +111,22 @@ public class UniqueIdMapperRepository {
      * @param incrementBy the step size between consecutive values
      * @param minValue    the minimum allowed value
      * @param maxValue    the maximum allowed value
-     * @param cacheSize   the number of values pre-allocated in memory
-     * @param cycle       {@code true} if the sequence should wrap around after reaching its max value
+     * @throws SequenceAlreadyExistsException if a sequence with the same name already exists
      * @throws DatabaseException if the database operation fails
      */
     public void createSequence(@Nonnull String schema,
                                @Nonnull String name,
-                               long startValue,
-                               long incrementBy,
-                               long minValue,
-                               long maxValue,
-                               long cacheSize,
-                               boolean cycle) {
+                               @Nullable Long startValue,
+                               @Nullable Long incrementBy,
+                               @Nullable Long minValue,
+                               @Nullable Long maxValue) {
         try {
-            uniqueIdMapper.createSequence(schema, name, startValue, incrementBy, minValue, maxValue, cacheSize, cycle);
+            uniqueIdMapper.createSequence(schema, name, startValue, incrementBy, minValue, maxValue);
         } catch (DataAccessException exception) {
+            if (exception.getMostSpecificCause() instanceof SQLException sqlException
+                    && DUPLICATE_TABLE_SQL_STATE.equals(sqlException.getSQLState())) {
+                throw new SequenceAlreadyExistsException("Sequence already exists", exception);
+            }
             throw new DatabaseException("Failed to create sequence", exception);
         }
     }

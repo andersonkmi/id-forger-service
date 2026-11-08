@@ -10,6 +10,8 @@ import org.codecraftlabs.idgenerator.id.service.InvalidSeriesException;
 import org.codecraftlabs.idgenerator.id.service.SequenceAdminService;
 import org.codecraftlabs.idgenerator.id.service.SequenceDetailsRetrievalException;
 import org.codecraftlabs.idgenerator.id.service.SequenceLastValueUpdateFailedException;
+import org.codecraftlabs.idgenerator.id.service.SeriesDataRequest;
+import org.codecraftlabs.idgenerator.id.service.SeriesNotCreatedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -66,7 +68,14 @@ public class SequenceAdminController {
             produces = APPLICATION_JSON_VALUE,
             consumes = APPLICATION_JSON_VALUE)
     public ResponseEntity<Series> createSeries(@Valid @RequestBody Series request) {
-        return status(CREATED).body(request);
+        try {
+            var convertedRequest = convert(request);
+            this.sequenceAdminService.createSeries(convertedRequest);
+            return status(CREATED).body(request);
+        } catch (SeriesNotCreatedException exception) {
+            LOGGER.error("Could not create new series", exception);
+            throw new ResponseStatusException(BAD_REQUEST, exception.getMessage(), exception);
+        }
     }
 
     /**
@@ -174,5 +183,15 @@ public class SequenceAdminController {
             errors.put(fieldName, errorMessage);
         });
         return errors;
+    }
+
+    @Nonnull
+    private SeriesDataRequest convert(@Nonnull Series from) {
+        return new SeriesDataRequest(from.getName(),
+                from.getPrefix(),
+                from.getStartingValue(),
+                from.getIncrementBy(),
+                from.getMinimumValue(),
+                from.getMaximumValue());
     }
 }
