@@ -67,7 +67,7 @@ public class SequenceAdminService {
     @Nonnull
     public SequenceDataResponse getSequenceDetails(@Nonnull String sequenceName) {
         try {
-            var sequence = this.uniqueIdMapperRepository.getSequenceDetails("public", sequenceName);
+            var sequence = this.uniqueIdMapperRepository.getSequenceDetails(SCHEMA, sequenceName);
             return convert(sequence);
         } catch (SequenceNotFoundException exception) {
             throw new InvalidSeriesException("Invalid series name provided", exception);
