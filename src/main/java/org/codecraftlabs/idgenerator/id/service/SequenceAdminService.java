@@ -24,6 +24,13 @@ public class SequenceAdminService {
         this.uniqueIdMapperRepository = uniqueIdMapperRepository;
     }
 
+    /**
+     * Creates a new series by creating its backing database sequence in the default schema.
+     * Numeric options left {@code null} in the request fall back to the database defaults.
+     *
+     * @param request the series definition
+     * @throws SeriesNotCreatedException if the sequence already exists or the database operation fails
+     */
     public void createSeries(@Nonnull SeriesDataRequest request) {
         try {
             this.uniqueIdMapperRepository.createSequence(SCHEMA,

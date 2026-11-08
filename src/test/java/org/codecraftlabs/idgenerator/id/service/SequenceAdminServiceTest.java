@@ -3,6 +3,7 @@ package org.codecraftlabs.idgenerator.id.service;
 import org.codecraftlabs.idgenerator.controller.admin.SequenceDataResponse;
 import org.codecraftlabs.idgenerator.id.Sequence;
 import org.codecraftlabs.idgenerator.id.repository.DatabaseException;
+import org.codecraftlabs.idgenerator.id.repository.SequenceAlreadyExistsException;
 import org.codecraftlabs.idgenerator.id.repository.SequenceNotFoundException;
 import org.codecraftlabs.idgenerator.id.repository.UniqueIdMapperRepository;
 import org.junit.jupiter.api.Test;
@@ -26,6 +27,44 @@ public class SequenceAdminServiceTest {
 
     @InjectMocks
     private SequenceAdminService sequenceAdminService;
+
+    // --- createSeries ---
+
+    @Test
+    public void should_create_sequence_in_public_schema_with_request_values() {
+        SeriesDataRequest request = new SeriesDataRequest("orders", "ORD", 100L, 5L, 10L, 1000L);
+        sequenceAdminService.createSeries(request);
+        verify(uniqueIdRepository).createSequence("public", "orders", 100L, 5L, 10L, 1000L);
+    }
+
+    @Test
+    public void should_pass_null_optional_values_to_repository() {
+        SeriesDataRequest request = new SeriesDataRequest("orders", "ORD", null, null, null, null);
+        sequenceAdminService.createSeries(request);
+        verify(uniqueIdRepository).createSequence("public", "orders", null, null, null, null);
+    }
+
+    @Test
+    public void when_database_error_on_create_should_throw_series_not_created_exception() {
+        DatabaseException cause = new DatabaseException("Failed to create sequence");
+        doThrow(cause).when(uniqueIdRepository).createSequence("public", "orders", null, null, null, null);
+        assertThatExceptionOfType(SeriesNotCreatedException.class)
+                .isThrownBy(() -> sequenceAdminService.createSeries(
+                        new SeriesDataRequest("orders", "ORD", null, null, null, null)))
+                .withMessage("Failed to create sequence")
+                .withCause(cause);
+    }
+
+    @Test
+    public void when_sequence_already_exists_should_throw_series_not_created_exception() {
+        SequenceAlreadyExistsException cause = new SequenceAlreadyExistsException("Sequence already exists", new RuntimeException());
+        doThrow(cause).when(uniqueIdRepository).createSequence("public", "orders", null, null, null, null);
+        assertThatExceptionOfType(SeriesNotCreatedException.class)
+                .isThrownBy(() -> sequenceAdminService.createSeries(
+                        new SeriesDataRequest("orders", "ORD", null, null, null, null)))
+                .withMessage("Sequence already exists")
+                .withCause(cause);
+    }
 
     // --- getCurrentValue ---
 
