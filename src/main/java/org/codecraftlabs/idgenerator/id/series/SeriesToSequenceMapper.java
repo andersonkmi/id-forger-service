@@ -2,6 +2,8 @@ package org.codecraftlabs.idgenerator.id.series;
 
 import jakarta.annotation.Nonnull;
 import org.codecraftlabs.idgenerator.id.repository.UniqueIdMapperRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -18,6 +20,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @Component
 public class SeriesToSequenceMapper {
+    private static final Logger LOGGER = LoggerFactory.getLogger(SeriesToSequenceMapper.class);
     private final Map<String, SeriesInfo> seriesDetails = new ConcurrentHashMap<>();
     private final UniqueIdMapperRepository uniqueIdMapperRepository;
 
@@ -43,11 +46,13 @@ public class SeriesToSequenceMapper {
     public SeriesInfo getSeriesDetails(@Nonnull String seriesName) {
         var result = Optional.ofNullable(seriesDetails.get(seriesName));
         if (result.isPresent()) {
+            LOGGER.atInfo().log(String.format("%s details found in cache", seriesName));
             return result.get();
         }
 
         var details = uniqueIdMapperRepository.getSeriesDetails(seriesName);
         SeriesInfo seriesInfo = new SeriesInfo(details.sequence(), details.prefix());
+        LOGGER.atInfo().log(String.format("%s details loaded from the database", seriesName));
         addSeriesDetails(seriesName, seriesInfo);
         return seriesInfo;
     }
@@ -60,6 +65,7 @@ public class SeriesToSequenceMapper {
      */
     private void addSeriesDetails(@Nonnull String seriesName,
                                   @Nonnull SeriesInfo seriesInfo) {
+        LOGGER.atInfo().log(String.format("%s details added into the cache", seriesName));
         seriesDetails.put(seriesName, seriesInfo);
     }
 }
