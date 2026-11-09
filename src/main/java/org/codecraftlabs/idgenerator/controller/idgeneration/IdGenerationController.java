@@ -33,7 +33,7 @@ import static org.springframework.http.ResponseEntity.status;
 @RequestMapping(ApiPaths.BASE)
 @SuppressWarnings({"MVCPathVariableInspection", "SpringApiVersioningConfigurationInspection"})
 public class IdGenerationController {
-    private static final Logger logger = LoggerFactory.getLogger(IdGenerationController.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(IdGenerationController.class);
     private final IdGenerationService idGenerationService;
 
     /**
@@ -59,13 +59,13 @@ public class IdGenerationController {
             String id = idGenerationService.generateId(seriesName, format);
             return status(OK).body(new IdResponse(id));
         } catch (IdNotGeneratedException exception) {
-            logger.error("Id not generated", exception);
+            LOGGER.error("Id not generated", exception);
             throw new ResponseStatusException(BAD_REQUEST, "Id not generated", exception);
         } catch (InvalidSeriesException exception) {
-            logger.error("Series name is invalid", exception);
+            LOGGER.error("Series name is invalid", exception);
             throw new ResponseStatusException(NOT_FOUND, "Series name is invalid", exception);
         } catch (InvalidFormatException exception) {
-            logger.error("Format is invalid", exception);
+            LOGGER.error("Format is invalid", exception);
             throw new ResponseStatusException(BAD_REQUEST, "Format is invalid", exception);
         }
     }
