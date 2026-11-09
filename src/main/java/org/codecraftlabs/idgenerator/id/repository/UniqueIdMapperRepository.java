@@ -4,6 +4,7 @@ import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 import org.codecraftlabs.idgenerator.id.Sequence;
 import org.codecraftlabs.idgenerator.id.service.SequenceLastValueUpdateFailedException;
+import org.slf4j.helpers.CheckReturnValue;
 import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -45,7 +46,7 @@ public class UniqueIdMapperRepository {
         }
     }
 
-    @Nonnull
+    @CheckReturnValue
     public SeriesDetail getSeriesDetails(@Nonnull String name) {
         try {
             return uniqueIdMapper.getSeriesDetails(name);

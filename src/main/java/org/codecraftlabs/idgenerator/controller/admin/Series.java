@@ -16,7 +16,7 @@ import jakarta.validation.constraints.Size;
  */
 public class Series {
     @NotBlank
-    @Size(max = 50, message = "name must be at most 10 characters long")
+    @Size(max = 50, message = "name must be at most 50 characters long")
     @Pattern(regexp = "^[a-z0-9]+$", message = "name must contain only lowercase letters and digits")
     private String name;
 

@@ -211,6 +211,176 @@ public class SequenceAdminControllerTest {
     }
 
     @Test
+    public void should_return_request_prefix_even_when_service_returns_a_different_prefix() throws Exception {
+        when(sequenceAdminService.createSeries(new SeriesData("orders", "ORD", null, null, null, null)))
+                .thenReturn(new SeriesData("orders", null, 1L, 1L, 1L, 100L));
+
+        mockMvc.perform(post("/idgenerator/v1/series")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"orders\",\"prefix\":\"ORD\"}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.prefix").value("ORD"));
+    }
+
+    @Test
+    public void should_return_name_and_numeric_values_from_service_response() throws Exception {
+        when(sequenceAdminService.createSeries(new SeriesData("orders", "ORD", 100L, 5L, 10L, 1000L)))
+                .thenReturn(new SeriesData("normalized", "ORD", 200L, 10L, 20L, 2000L));
+
+        mockMvc.perform(post("/idgenerator/v1/series")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"orders","prefix":"ORD","startingValue":100,
+                                 "incrementBy":5,"minimumValue":10,"maximumValue":1000}
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.name").value("normalized"))
+                .andExpect(jsonPath("$.startingValue").value(200))
+                .andExpect(jsonPath("$.incrementBy").value(10))
+                .andExpect(jsonPath("$.minimumValue").value(20))
+                .andExpect(jsonPath("$.maximumValue").value(2000));
+    }
+
+    @Test
+    public void should_accept_zero_for_non_negative_numeric_values() throws Exception {
+        SeriesData expected = new SeriesData("orders", "ORD", 0L, 1L, 0L, 0L);
+        when(sequenceAdminService.createSeries(expected)).thenReturn(expected);
+
+        mockMvc.perform(post("/idgenerator/v1/series")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"orders","prefix":"ORD","startingValue":0,
+                                 "incrementBy":1,"minimumValue":0,"maximumValue":0}
+                                """))
+                .andExpect(status().isCreated());
+
+        verify(sequenceAdminService).createSeries(expected);
+    }
+
+    @Test
+    public void should_accept_prefix_with_exactly_ten_characters() throws Exception {
+        SeriesData expected = new SeriesData("orders", "ABCDEFGHIJ", null, null, null, null);
+        when(sequenceAdminService.createSeries(expected)).thenReturn(expected);
+
+        mockMvc.perform(post("/idgenerator/v1/series")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"orders\",\"prefix\":\"ABCDEFGHIJ\"}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.prefix").value("ABCDEFGHIJ"));
+    }
+
+    @Test
+    public void should_return_400_and_not_call_service_when_name_is_too_long() throws Exception {
+        String name = "a".repeat(51);
+
+        mockMvc.perform(post("/idgenerator/v1/series")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"" + name + "\",\"prefix\":\"ORD\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.name").exists());
+
+        verifyNoInteractions(sequenceAdminService);
+    }
+
+    @Test
+    public void should_return_400_and_not_call_service_when_name_is_missing() throws Exception {
+        mockMvc.perform(post("/idgenerator/v1/series")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"prefix\":\"ORD\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.name").exists());
+
+        verifyNoInteractions(sequenceAdminService);
+    }
+
+    @Test
+    public void should_return_400_and_not_call_service_when_prefix_is_blank() throws Exception {
+        mockMvc.perform(post("/idgenerator/v1/series")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"orders\",\"prefix\":\"   \"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.prefix").exists());
+
+        verifyNoInteractions(sequenceAdminService);
+    }
+
+    @Test
+    public void should_return_400_and_not_call_service_when_create_body_is_malformed() throws Exception {
+        mockMvc.perform(post("/idgenerator/v1/series")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":"))
+                .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(sequenceAdminService);
+    }
+
+    @Test
+    public void should_return_400_and_not_call_service_when_create_body_is_missing() throws Exception {
+        mockMvc.perform(post("/idgenerator/v1/series")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(sequenceAdminService);
+    }
+
+    @Test
+    public void should_return_400_and_not_call_service_when_numeric_value_is_not_a_number() throws Exception {
+        mockMvc.perform(post("/idgenerator/v1/series")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"orders\",\"prefix\":\"ORD\",\"startingValue\":\"abc\"}"))
+                .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(sequenceAdminService);
+    }
+
+    @Test
+    public void should_return_created_response_entity_when_creating_directly() {
+        Series request = series("orders", "ORD", 100L, 5L, 10L, 1000L);
+        when(sequenceAdminService.createSeries(new SeriesData("orders", "ORD", 100L, 5L, 10L, 1000L)))
+                .thenReturn(new SeriesData("orders", "IGNORED", 100L, 5L, 10L, 1000L));
+
+        ResponseEntity<Series> response = new SequenceAdminController(sequenceAdminService).createSeries(request);
+
+        assertThat(response.getStatusCode().value()).isEqualTo(201);
+        Series body = response.getBody();
+        assertThat(body).isNotNull().isNotSameAs(request);
+        assertThat(body.getName()).isEqualTo("orders");
+        assertThat(body.getPrefix()).isEqualTo("ORD");
+        assertThat(body.getStartingValue()).isEqualTo(100L);
+        assertThat(body.getIncrementBy()).isEqualTo(5L);
+        assertThat(body.getMinimumValue()).isEqualTo(10L);
+        assertThat(body.getMaximumValue()).isEqualTo(1000L);
+    }
+
+    @Test
+    public void should_wrap_series_not_created_exception_as_cause_when_invoked_directly() {
+        SeriesNotCreatedException cause = new SeriesNotCreatedException("Sequence already exists", new RuntimeException());
+        when(sequenceAdminService.createSeries(new SeriesData("orders", "ORD", null, null, null, null)))
+                .thenThrow(cause);
+        Series request = series("orders", "ORD", null, null, null, null);
+
+        assertThatThrownBy(() -> new SequenceAdminController(sequenceAdminService).createSeries(request))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasCause(cause)
+                .satisfies(ex -> {
+                    ResponseStatusException rse = (ResponseStatusException) ex;
+                    assertThat(rse.getStatusCode().value()).isEqualTo(400);
+                    assertThat(rse.getReason()).isEqualTo("Sequence already exists");
+                });
+    }
+
+    @Test
+    public void should_propagate_unexpected_exceptions_when_creating_series() {
+        IllegalStateException unexpected = new IllegalStateException("boom");
+        when(sequenceAdminService.createSeries(new SeriesData("orders", "ORD", null, null, null, null)))
+                .thenThrow(unexpected);
+        Series request = series("orders", "ORD", null, null, null, null);
+
+        assertThatThrownBy(() -> new SequenceAdminController(sequenceAdminService).createSeries(request))
+                .isSameAs(unexpected);
+    }
+
+    @Test
     public void should_return_current_value_for_known_series() throws Exception {
         when(sequenceAdminService.getCurrentValue("default")).thenReturn("100");
 
@@ -588,6 +758,18 @@ public class SequenceAdminControllerTest {
                 BulkheadConfig.custom().maxConcurrentCalls(1).maxWaitDuration(Duration.ZERO).build());
         bulkhead.tryAcquirePermission();
         return BulkheadFullException.createBulkheadFullException(bulkhead);
+    }
+
+    private static Series series(String name, String prefix, Long startingValue, Long incrementBy,
+                                 Long minimumValue, Long maximumValue) {
+        Series series = new Series();
+        series.setName(name);
+        series.setPrefix(prefix);
+        series.setStartingValue(startingValue);
+        series.setIncrementBy(incrementBy);
+        series.setMinimumValue(minimumValue);
+        series.setMaximumValue(maximumValue);
+        return series;
     }
 
     private static String reasonOf(Exception exception) {

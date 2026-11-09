@@ -66,7 +66,7 @@ public interface UniqueIdMapper {
     @Select("""
             SELECT sequence, prefix 
             FROM series_details
-            WHERE name = #{seriesName};
+            WHERE name = #{name};
             """)
     @ConstructorArgs({
             @Arg(column = "sequence", javaType = String.class),

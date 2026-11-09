@@ -6,6 +6,8 @@ import org.codecraftlabs.idgenerator.id.Sequence;
 import org.codecraftlabs.idgenerator.id.repository.DatabaseException;
 import org.codecraftlabs.idgenerator.id.repository.SequenceNotFoundException;
 import org.codecraftlabs.idgenerator.id.repository.UniqueIdMapperRepository;
+import org.codecraftlabs.idgenerator.id.series.SeriesInfo;
+import org.codecraftlabs.idgenerator.id.series.SeriesToSequenceMapper;
 import org.springframework.stereotype.Service;
 
 import static java.lang.String.valueOf;
@@ -21,9 +23,12 @@ public class SequenceAdminService {
     private static final String SEQUENCE_NAME_PREFIX = "idfs_";
 
     private final UniqueIdMapperRepository uniqueIdMapperRepository;
+    private final SeriesToSequenceMapper seriesToSequenceMapper;
 
-    public SequenceAdminService(@Nonnull UniqueIdMapperRepository uniqueIdMapperRepository) {
+    public SequenceAdminService(@Nonnull UniqueIdMapperRepository uniqueIdMapperRepository,
+                                @Nonnull SeriesToSequenceMapper seriesToSequenceMapper) {
         this.uniqueIdMapperRepository = uniqueIdMapperRepository;
+        this.seriesToSequenceMapper = seriesToSequenceMapper;
     }
 
     /**
@@ -62,7 +67,7 @@ public class SequenceAdminService {
     @Nonnull
     public String getCurrentValue(@Nonnull String seriesName) {
         try {
-            return valueOf(uniqueIdMapperRepository.getCurrentId(addSequenceNamePrefix(seriesName)));
+            return valueOf(uniqueIdMapperRepository.getCurrentId(resolveSequenceName(seriesName)));
         } catch (SequenceNotFoundException exception) {
             throw new InvalidSeriesException("Invalid series name provided", exception);
         } catch (DatabaseException exception) {
@@ -81,7 +86,10 @@ public class SequenceAdminService {
     @Nonnull
     public SequenceDataResponse getSequenceDetails(@Nonnull String sequenceName) {
         try {
-            var sequence = this.uniqueIdMapperRepository.getSequenceDetails(SCHEMA, addSequenceNamePrefix(sequenceName));
+            var sequence = this.uniqueIdMapperRepository.getSequenceDetails(SCHEMA, resolveSequenceName(sequenceName));
+            if (sequence == null) {
+                throw new InvalidSeriesException("Invalid series name provided");
+            }
             return convert(sequence);
         } catch (SequenceNotFoundException exception) {
             throw new InvalidSeriesException("Invalid series name provided", exception);
@@ -100,7 +108,7 @@ public class SequenceAdminService {
      */
     public void updateSequenceLastValue(@Nonnull String name, long lastValue) {
         try {
-            this.uniqueIdMapperRepository.updateSequenceLastValue(addSequenceNamePrefix(name), lastValue);
+            this.uniqueIdMapperRepository.updateSequenceLastValue(resolveSequenceName(name), lastValue);
         } catch (SequenceNotFoundException exception) {
             throw new InvalidSeriesException("Invalid series name provided", exception);
         } catch (DatabaseException exception) {
@@ -130,6 +138,21 @@ public class SequenceAdminService {
                 sequence.cacheSize(),
                 sequence.cycle(),
                 sequence.lastValue());
+    }
+
+    /**
+     * Resolves a series name to its backing sequence name via the {@code series_details} mapping.
+     *
+     * @param seriesName the series name
+     * @return the sequence name mapped to the series
+     * @throws InvalidSeriesException if the series is not mapped
+     * @throws DatabaseException      if loading the mapping fails
+     */
+    @Nonnull
+    private String resolveSequenceName(@Nonnull String seriesName) {
+        return seriesToSequenceMapper.getSeriesDetails(seriesName)
+                .map(SeriesInfo::sequenceName)
+                .orElseThrow(() -> new InvalidSeriesException("Invalid series name provided"));
     }
 
     @Nonnull

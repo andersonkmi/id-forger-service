@@ -43,18 +43,22 @@ public class SeriesToSequenceMapper {
      * @throws org.codecraftlabs.idgenerator.id.repository.DatabaseException if loading the details fails
      */
     @Nonnull
-    public SeriesInfo getSeriesDetails(@Nonnull String seriesName) {
+    public Optional<SeriesInfo> getSeriesDetails(@Nonnull String seriesName) {
         var result = Optional.ofNullable(seriesDetails.get(seriesName));
         if (result.isPresent()) {
             LOGGER.atInfo().log(String.format("%s details found in cache", seriesName));
-            return result.get();
+            return result;
         }
 
         var details = uniqueIdMapperRepository.getSeriesDetails(seriesName);
+        if (details == null) {
+            return Optional.empty();
+        }
+
         SeriesInfo seriesInfo = new SeriesInfo(details.sequence(), details.prefix());
         LOGGER.atInfo().log(String.format("%s details loaded from the database", seriesName));
         addSeriesDetails(seriesName, seriesInfo);
-        return seriesInfo;
+        return Optional.of(seriesInfo);
     }
 
     /**
