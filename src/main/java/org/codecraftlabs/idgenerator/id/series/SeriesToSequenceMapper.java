@@ -46,7 +46,6 @@ public class SeriesToSequenceMapper {
     public Optional<SeriesInfo> getSeriesDetails(@Nonnull String seriesName) {
         var result = Optional.ofNullable(seriesDetails.get(seriesName));
         if (result.isPresent()) {
-            LOGGER.atInfo().log(String.format("%s details found in cache", seriesName));
             return result;
         }
 
