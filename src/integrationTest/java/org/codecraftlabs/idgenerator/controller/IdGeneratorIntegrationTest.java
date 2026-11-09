@@ -2,6 +2,7 @@ package org.codecraftlabs.idgenerator.controller;
 
 import org.assertj.core.api.Assertions;
 import org.codecraftlabs.idgenerator.MainApplication;
+import org.codecraftlabs.idgenerator.controller.admin.Series;
 import org.codecraftlabs.idgenerator.id.util.LuhnValidator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -183,7 +184,7 @@ public class IdGeneratorIntegrationTest {
 
     @Test
     public void testCurrentValueInvalidSeriesReturns404() {
-        assertGetFails("/idgenerator/v1/ids/fake/currentValue", "404 Not Found");
+        assertGetFails("/idgenerator/v1/series/fake/currentValue", "404 Not Found");
     }
 
     @Test
@@ -227,6 +228,103 @@ public class IdGeneratorIntegrationTest {
         Assertions.assertThatExceptionOfType(HttpClientErrorException.class)
                 .isThrownBy(() -> patchLastValue("fake", 10L))
                 .withMessageContaining("404 Not Found");
+    }
+
+    @Test
+    public void testCreateSeriesThenGenerateIds() {
+        String name = uniqueSeriesName();
+        Series created = createSeries(Map.of(
+                "name", name,
+                "prefix", "NEW",
+                "startingValue", 500,
+                "incrementBy", 5,
+                "minimumValue", 500,
+                "maximumValue", 10000));
+
+        Assertions.assertThat(created).isNotNull();
+        Assertions.assertThat(created.getName()).isEqualTo(name);
+        Assertions.assertThat(created.getPrefix()).isEqualTo("NEW");
+        Assertions.assertThat(created.getStartingValue()).isEqualTo(500L);
+        Assertions.assertThat(created.getIncrementBy()).isEqualTo(5L);
+        Assertions.assertThat(created.getMinimumValue()).isEqualTo(500L);
+        Assertions.assertThat(created.getMaximumValue()).isEqualTo(10000L);
+
+        Assertions.assertThat(getId("/idgenerator/v1/ids/" + name)).isEqualTo("500");
+        Assertions.assertThat(getId("/idgenerator/v1/ids/" + name)).isEqualTo("505");
+        Assertions.assertThat(getId("/idgenerator/v1/ids/" + name + "?format=prefixed")).isEqualTo("NEW000000000000510");
+        Assertions.assertThat(getId("/idgenerator/v1/series/" + name + "/currentValue")).isEqualTo("510");
+
+        SequenceDetails details = restClient.get()
+                .uri("/idgenerator/v1/series/" + name + "/details")
+                .retrieve()
+                .body(SequenceDetails.class);
+        Assertions.assertThat(details).isNotNull();
+        Assertions.assertThat(details.name()).isEqualTo("idfs_" + name);
+        Assertions.assertThat(details.startValue()).isEqualTo(500L);
+        Assertions.assertThat(details.maxValue()).isEqualTo(10000L);
+    }
+
+    @Test
+    public void testCreateSeriesWithOnlyRequiredFieldsUsesDatabaseDefaults() {
+        String name = uniqueSeriesName();
+        Series created = createSeries(Map.of("name", name, "prefix", "DEF"));
+
+        Assertions.assertThat(created).isNotNull();
+        Assertions.assertThat(created.getName()).isEqualTo(name);
+        Assertions.assertThat(created.getPrefix()).isEqualTo("DEF");
+        Assertions.assertThat(created.getStartingValue()).isEqualTo(1L);
+        Assertions.assertThat(created.getIncrementBy()).isEqualTo(1L);
+        Assertions.assertThat(created.getMinimumValue()).isEqualTo(1L);
+        Assertions.assertThat(created.getMaximumValue()).isEqualTo(Long.MAX_VALUE);
+        Assertions.assertThat(getId("/idgenerator/v1/ids/" + name)).isEqualTo("1");
+    }
+
+    @Test
+    public void testCreateExistingSeriesReturns400() {
+        String name = uniqueSeriesName();
+        createSeries(Map.of("name", name, "prefix", "DUP"));
+
+        Assertions.assertThatExceptionOfType(HttpClientErrorException.class)
+                .isThrownBy(() -> createSeries(Map.of("name", name, "prefix", "DUP")))
+                .withMessageContaining("400 Bad Request");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "{\"name\":\"\",\"prefix\":\"ORD\"}",
+            "{\"name\":\"Orders_1\",\"prefix\":\"ORD\"}",
+            "{\"name\":\"orders\"}",
+            "{\"name\":\"orders\",\"prefix\":\"ABCDEFGHIJK\"}",
+            "{\"name\":\"orders\",\"prefix\":\"ORD\",\"incrementBy\":0}",
+            "{\"name\":\"orders\",\"prefix\":\"ORD\",\"startingValue\":-1}"
+    })
+    public void testCreateSeriesWithInvalidBodyReturns400(String body) {
+        Assertions.assertThatExceptionOfType(HttpClientErrorException.class)
+                .isThrownBy(() -> createSeries(body))
+                .withMessageContaining("400 Bad Request");
+    }
+
+    @Test
+    public void testCreateSeriesWithUnsupportedApiVersionReturns400() {
+        Assertions.assertThatExceptionOfType(HttpClientErrorException.class)
+                .isThrownBy(() -> restClient.post()
+                        .uri("/idgenerator/v2/series")
+                        .body(Map.of("name", uniqueSeriesName(), "prefix", "VER"))
+                        .retrieve()
+                        .body(Series.class))
+                .withMessageContaining("400 Bad Request");
+    }
+
+    private Series createSeries(Object body) {
+        return restClient.post()
+                .uri("/idgenerator/v1/series")
+                .body(body)
+                .retrieve()
+                .body(Series.class);
+    }
+
+    private static String uniqueSeriesName() {
+        return "it" + System.nanoTime();
     }
 
     private String getId(String uri) {

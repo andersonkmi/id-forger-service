@@ -28,17 +28,26 @@ class SeriesToSequenceMapperTest {
         when(uniqueIdMapperRepository.getSeriesDetails("orders")).thenReturn(new SeriesDetail("idfs_orders", "ORD"));
 
         assertThat(seriesToSequenceMapper.getSeriesDetails("orders"))
-                .isEqualTo(new SeriesInfo("idfs_orders", "ORD"));
+                .contains(new SeriesInfo("idfs_orders", "ORD"));
+    }
+
+    @Test
+    void should_return_empty_and_not_cache_when_series_is_not_found() {
+        when(uniqueIdMapperRepository.getSeriesDetails("unknown")).thenReturn(null);
+
+        assertThat(seriesToSequenceMapper.getSeriesDetails("unknown")).isEmpty();
+        assertThat(seriesToSequenceMapper.getSeriesDetails("unknown")).isEmpty();
+        verify(uniqueIdMapperRepository, times(2)).getSeriesDetails("unknown");
     }
 
     @Test
     void should_return_cached_series_details_without_querying_repository_again() {
         when(uniqueIdMapperRepository.getSeriesDetails("orders")).thenReturn(new SeriesDetail("idfs_orders", "ORD"));
 
-        SeriesInfo first = seriesToSequenceMapper.getSeriesDetails("orders");
-        SeriesInfo second = seriesToSequenceMapper.getSeriesDetails("orders");
+        var first = seriesToSequenceMapper.getSeriesDetails("orders");
+        var second = seriesToSequenceMapper.getSeriesDetails("orders");
 
-        assertThat(second).isSameAs(first);
+        assertThat(second).containsSame(first.orElseThrow());
         verify(uniqueIdMapperRepository, times(1)).getSeriesDetails("orders");
     }
 
@@ -47,9 +56,9 @@ class SeriesToSequenceMapperTest {
         when(uniqueIdMapperRepository.getSeriesDetails("orders")).thenReturn(new SeriesDetail("idfs_orders", "ORD"));
         when(uniqueIdMapperRepository.getSeriesDetails("product")).thenReturn(new SeriesDetail("idfs_product", "PRD"));
 
-        assertThat(seriesToSequenceMapper.getSeriesDetails("orders")).isEqualTo(new SeriesInfo("idfs_orders", "ORD"));
-        assertThat(seriesToSequenceMapper.getSeriesDetails("product")).isEqualTo(new SeriesInfo("idfs_product", "PRD"));
-        assertThat(seriesToSequenceMapper.getSeriesDetails("orders")).isEqualTo(new SeriesInfo("idfs_orders", "ORD"));
+        assertThat(seriesToSequenceMapper.getSeriesDetails("orders")).contains(new SeriesInfo("idfs_orders", "ORD"));
+        assertThat(seriesToSequenceMapper.getSeriesDetails("product")).contains(new SeriesInfo("idfs_product", "PRD"));
+        assertThat(seriesToSequenceMapper.getSeriesDetails("orders")).contains(new SeriesInfo("idfs_orders", "ORD"));
 
         verify(uniqueIdMapperRepository, times(1)).getSeriesDetails("orders");
         verify(uniqueIdMapperRepository, times(1)).getSeriesDetails("product");
@@ -64,7 +73,7 @@ class SeriesToSequenceMapperTest {
         assertThatExceptionOfType(DatabaseException.class)
                 .isThrownBy(() -> seriesToSequenceMapper.getSeriesDetails("orders"))
                 .withMessage("Failed to get series details");
-        assertThat(seriesToSequenceMapper.getSeriesDetails("orders")).isEqualTo(new SeriesInfo("idfs_orders", "ORD"));
+        assertThat(seriesToSequenceMapper.getSeriesDetails("orders")).contains(new SeriesInfo("idfs_orders", "ORD"));
         verify(uniqueIdMapperRepository, times(2)).getSeriesDetails("orders");
     }
 }

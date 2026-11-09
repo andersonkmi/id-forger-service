@@ -10,3 +10,5 @@ create table series_details (
                                 prefix varchar(255) not null,
                                 created_at timestamp with time zone not null default now()
 );
+insert into series_details (name, sequence, prefix) values ('default', 'idfs_default', 'STD');
+insert into series_details (name, sequence, prefix) values ('product', 'idfs_product', 'PROD');
