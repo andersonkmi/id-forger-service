@@ -1,8 +1,9 @@
 package org.codecraftlabs.idgenerator.id.util;
 
-import org.springframework.stereotype.Component;
-
 import jakarta.annotation.Nonnull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
 
 /**
  * Computes the Luhn check digit for a partial number and appends it to produce
@@ -10,6 +11,8 @@ import jakarta.annotation.Nonnull;
  */
 @Component
 public class LuhnDigitNumberGenerator {
+    private static final Logger LOGGER = LoggerFactory.getLogger(LuhnDigitNumberGenerator.class);
+
     /**
      * Calculates the Luhn check digit for {@code partialNumber} and appends it.
      *
@@ -18,7 +21,9 @@ public class LuhnDigitNumberGenerator {
      */
     @Nonnull
     public String generatorLuhnCheckValidNumber(@Nonnull String partialNumber) {
+        LOGGER.atInfo().log(String.format("Generating Luhn check digit for %s", partialNumber));
         int luhnDigit = calculateCheckDigit(partialNumber);
+        LOGGER.atInfo().log(String.format("Generated Luhn check digit %d", luhnDigit));
         return String.format("%s%d", partialNumber, luhnDigit);
     }
 
