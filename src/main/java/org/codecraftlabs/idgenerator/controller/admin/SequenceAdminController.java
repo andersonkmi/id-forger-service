@@ -18,6 +18,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -85,6 +86,28 @@ public class SequenceAdminController {
         } catch (SeriesNotCreatedException exception) {
             LOGGER.error("Could not create new series", exception);
             throw new ResponseStatusException(BAD_REQUEST, exception.getMessage(), exception);
+        }
+    }
+
+    /**
+     * Deletes an existing series together with its backing database sequence.
+     *
+     * @param seriesName the name of the series to delete
+     * @return HTTP 200 with the body {@code "Done"} once the series has been removed,
+     *         or 404 if the series is unknown
+     */
+    @Bulkhead(name = "admin", type = Bulkhead.Type.SEMAPHORE)
+    @DeleteMapping(value = "/series/{seriesName}",
+            version = ApiPaths.V1,
+            produces = APPLICATION_JSON_VALUE,
+            consumes = APPLICATION_JSON_VALUE)
+    public ResponseEntity<String> deleteSeries(@PathVariable String seriesName) {
+        try {
+            this.sequenceAdminService.deleteSeries(seriesName);
+            return ResponseEntity.ok("Done");
+        } catch (InvalidSeriesException exception) {
+            LOGGER.error("Series name is invalid", exception);
+            throw new ResponseStatusException(NOT_FOUND, "Series name is invalid", exception);
         }
     }
 

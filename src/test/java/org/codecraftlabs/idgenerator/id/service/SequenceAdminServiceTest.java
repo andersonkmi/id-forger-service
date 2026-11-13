@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -79,6 +80,57 @@ public class SequenceAdminServiceTest {
                         new SeriesData("orders", "ORD", null, null, null, null)))
                 .withMessage("Sequence already exists")
                 .withCause(cause);
+    }
+
+    // --- deleteSeries ---
+
+    @Test
+    public void should_delete_series_and_its_backing_sequence() {
+        when(uniqueIdRepository.seriesExists("default")).thenReturn(true);
+        mapDefaultSeries();
+        sequenceAdminService.deleteSeries("default");
+        verify(uniqueIdRepository).deleteSeries("public", "default", "idfs_default");
+    }
+
+    @Test
+    public void when_series_does_not_exist_on_delete_should_throw_invalid_series_exception() {
+        when(uniqueIdRepository.seriesExists("unknown")).thenReturn(false);
+        assertThatExceptionOfType(InvalidSeriesException.class)
+                .isThrownBy(() -> sequenceAdminService.deleteSeries("unknown"))
+                .withMessage("Invalid series name provided");
+        verifyNoInteractions(seriesToSequenceMapper);
+        verify(uniqueIdRepository, never()).deleteSeries(anyString(), anyString(), anyString());
+    }
+
+    @Test
+    public void when_series_not_mapped_on_delete_should_throw_invalid_series_exception() {
+        when(uniqueIdRepository.seriesExists("unknown")).thenReturn(true);
+        when(seriesToSequenceMapper.getSeriesDetails("unknown")).thenReturn(Optional.empty());
+        assertThatExceptionOfType(InvalidSeriesException.class)
+                .isThrownBy(() -> sequenceAdminService.deleteSeries("unknown"))
+                .withMessage("Invalid series name provided");
+        verify(uniqueIdRepository, never()).deleteSeries(anyString(), anyString(), anyString());
+    }
+
+    @Test
+    public void when_database_error_on_series_exists_check_should_propagate_database_exception() {
+        DatabaseException cause = new DatabaseException("Failed to check if series exists");
+        when(uniqueIdRepository.seriesExists("default")).thenThrow(cause);
+        assertThatExceptionOfType(DatabaseException.class)
+                .isThrownBy(() -> sequenceAdminService.deleteSeries("default"))
+                .isSameAs(cause);
+        verify(uniqueIdRepository, never()).deleteSeries(anyString(), anyString(), anyString());
+    }
+
+    @Test
+    public void when_database_error_on_delete_should_propagate_database_exception() {
+        DatabaseException cause = new DatabaseException("Failed to delete series and sequence");
+        when(uniqueIdRepository.seriesExists("default")).thenReturn(true);
+        mapDefaultSeries();
+        doThrow(cause).when(uniqueIdRepository).deleteSeries("public", "default", "idfs_default");
+        assertThatExceptionOfType(DatabaseException.class)
+                .isThrownBy(() -> sequenceAdminService.deleteSeries("default"))
+                .isSameAs(cause);
     }
 
     // --- getCurrentValue ---

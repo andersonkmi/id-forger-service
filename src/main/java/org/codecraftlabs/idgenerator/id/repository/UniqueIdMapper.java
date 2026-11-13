@@ -4,6 +4,7 @@ import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 import org.apache.ibatis.annotations.Arg;
 import org.apache.ibatis.annotations.ConstructorArgs;
+import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -74,6 +75,14 @@ public interface UniqueIdMapper {
     })
     SeriesDetail getSeriesDetails(@Nonnull @Param("name") String name);
 
+    /**
+     * Checks whether a series is registered in the {@code series_details} table.
+     *
+     * @param name the series name
+     * @return {@code true} if the series exists, {@code false} otherwise
+     */
+    @Select("SELECT EXISTS (SELECT 1 FROM series_details WHERE name = #{name})")
+    boolean seriesExists(@Nonnull @Param("name") String name);
 
     /**
      * Updates the last value of the specified database sequence.
@@ -107,12 +116,35 @@ public interface UniqueIdMapper {
             <if test="maxValue != null">MAXVALUE ${maxValue}</if>
             </script>
             """)
-    void createSeries(@Nonnull @Param("schema") String schema,
-                      @Nonnull @Param("name") String name,
-                      @Nullable @Param("startValue") Long startValue,
-                      @Nullable @Param("incrementBy") Long incrementBy,
-                      @Nullable @Param("minValue") Long minValue,
-                      @Nullable @Param("maxValue") Long maxValue);
+    void createSequence(@Nonnull @Param("schema") String schema,
+                        @Nonnull @Param("name") String name,
+                        @Nullable @Param("startValue") Long startValue,
+                        @Nullable @Param("incrementBy") Long incrementBy,
+                        @Nullable @Param("minValue") Long minValue,
+                        @Nullable @Param("maxValue") Long maxValue);
+
+
+    /**
+     * Drops the given database sequence.
+     * <p>
+     * PostgreSQL DDL statements do not support bind parameters, so the schema and
+     * name are substituted directly into the statement. Callers must ensure these
+     * values are validated identifiers and never raw user input.
+     *
+     * @param schema the database schema that owns the sequence
+     * @param name   the name of the sequence to drop
+     */
+    @Delete("DROP SEQUENCE ${schema}.${name}")
+    void dropSequence(@Nonnull @Param("schema") String schema,
+                      @Nonnull @Param("name") String name);
+
+    /**
+     * Removes a series from the {@code series_details} table.
+     *
+     * @param name the series name
+     */
+    @Delete("delete from series_details where name = #{name}")
+    void deleteSeriesDetails(@Nonnull @Param("name") String name);
 
     /**
      * Registers a series in the {@code series_details} table, mapping it to its

@@ -315,6 +315,68 @@ public class IdGeneratorIntegrationTest {
                 .withMessageContaining("400 Bad Request");
     }
 
+    @Test
+    public void testDeleteSeriesRemovesSeriesAndSequence() {
+        String name = uniqueSeriesName();
+        createSeries(Map.of("name", name, "prefix", "DEL"));
+        getId("/idgenerator/v1/ids/" + name);
+
+        Assertions.assertThat(deleteSeries(name)).isEqualTo("Done");
+
+        assertGetFails("/idgenerator/v1/series/" + name + "/details", "404 Not Found");
+    }
+
+    @Test
+    public void testDeleteSeriesTwiceReturns404() {
+        String name = uniqueSeriesName();
+        createSeries(Map.of("name", name, "prefix", "DEL"));
+        deleteSeries(name);
+
+        Assertions.assertThatExceptionOfType(HttpClientErrorException.class)
+                .isThrownBy(() -> deleteSeries(name))
+                .withMessageContaining("404 Not Found");
+    }
+
+    @Test
+    public void testDeletedSeriesCanBeRecreated() {
+        String name = uniqueSeriesName();
+        createSeries(Map.of("name", name, "prefix", "OLD", "startingValue", 100));
+        deleteSeries(name);
+
+        Series recreated = createSeries(Map.of("name", name, "prefix", "NEW", "startingValue", 200));
+
+        Assertions.assertThat(recreated).isNotNull();
+        Assertions.assertThat(recreated.getStartingValue()).isEqualTo(200L);
+    }
+
+    @Test
+    public void testDeleteInvalidSeriesReturns404() {
+        Assertions.assertThatExceptionOfType(HttpClientErrorException.class)
+                .isThrownBy(() -> deleteSeries("fake"))
+                .withMessageContaining("404 Not Found");
+    }
+
+    @Test
+    public void testDeleteSeriesWithUnsupportedApiVersionReturns400() {
+        String name = uniqueSeriesName();
+        createSeries(Map.of("name", name, "prefix", "VER"));
+
+        Assertions.assertThatExceptionOfType(HttpClientErrorException.class)
+                .isThrownBy(() -> restClient.delete()
+                        .uri("/idgenerator/v2/series/" + name)
+                        .retrieve()
+                        .body(String.class))
+                .withMessageContaining("400 Bad Request");
+        Assertions.assertThat(getId("/idgenerator/v1/ids/" + name)).isEqualTo("1");
+    }
+
+    private String deleteSeries(String series) {
+        return restClient.delete()
+                .uri("/idgenerator/v1/series/" + series)
+                .retrieve()
+                .body(String.class);
+    }
+
     private Series createSeries(Object body) {
         return restClient.post()
                 .uri("/idgenerator/v1/series")
