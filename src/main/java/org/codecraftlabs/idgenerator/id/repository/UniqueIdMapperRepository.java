@@ -56,6 +56,21 @@ public class UniqueIdMapperRepository {
     }
 
     /**
+     * Checks whether the given series is registered in the {@code series_details} table.
+     *
+     * @param name the series name
+     * @return {@code true} if the series exists, {@code false} otherwise
+     * @throws DatabaseException if the database operation fails
+     */
+    public boolean seriesExists(@Nonnull String name) {
+        try {
+            return uniqueIdMapper.seriesExists(name);
+        } catch (DataAccessException exception) {
+            throw new DatabaseException("Failed to check if series exists", exception);
+        }
+    }
+
+    /**
      * Retrieves the current ID for the given series without advancing
      * the underlying database sequence.
      *
@@ -139,7 +154,7 @@ public class UniqueIdMapperRepository {
                                  @Nullable Long minValue,
                                  @Nullable Long maxValue) {
         try {
-            uniqueIdMapper.createSeries(schema, name, startValue, incrementBy, minValue, maxValue);
+            uniqueIdMapper.createSequence(schema, name, startValue, incrementBy, minValue, maxValue);
             uniqueIdMapper.insertSeriesDetails(seriesName, name, prefix);
             Sequence sequence = uniqueIdMapper.getSequenceDetails(schema, name);
             if (sequence == null) {
@@ -152,6 +167,29 @@ public class UniqueIdMapperRepository {
                 throw new SequenceAlreadyExistsException("Sequence already exists", exception);
             }
             throw new DatabaseException("Failed to create sequence", exception);
+        }
+    }
+
+
+    /**
+     * Drops the database sequence backing the given series and removes the series
+     * from {@code series_details}. Both steps run in a single transaction, so nothing
+     * is removed if either step fails.
+     *
+     * @param schema       the database schema that owns the sequence
+     * @param seriesName   the series name to unregister
+     * @param sequenceName the name of the sequence to drop
+     * @throws DatabaseException if the database operation fails
+     */
+    @Transactional
+    public void deleteSeries(@Nonnull String schema,
+                             @Nonnull String seriesName,
+                             @Nonnull String sequenceName) {
+        try {
+            uniqueIdMapper.dropSequence(schema, sequenceName);
+            uniqueIdMapper.deleteSeriesDetails(seriesName);
+        } catch (DataAccessException exception) {
+            throw new DatabaseException("Failed to delete series and sequence", exception);
         }
     }
 }

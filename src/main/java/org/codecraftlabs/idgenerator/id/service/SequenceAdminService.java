@@ -57,6 +57,23 @@ public class SequenceAdminService {
     }
 
     /**
+     * Deletes a series by dropping its backing database sequence and removing its
+     * entry from the {@code series_details} table. Both operations run in a single
+     * transaction, so nothing is removed if either step fails.
+     *
+     * @param seriesName the series name
+     * @throws InvalidSeriesException if the series is not registered or cannot be mapped to a sequence
+     * @throws DatabaseException      if the database operation fails
+     */
+    public void deleteSeries(@Nonnull String seriesName) {
+        boolean exists = this.uniqueIdMapperRepository.seriesExists(seriesName);
+        if (!exists) {
+            throw new InvalidSeriesException("Invalid series name provided");
+        }
+        this.uniqueIdMapperRepository.deleteSeries(SCHEMA, seriesName, resolveSequenceName(seriesName));
+    }
+
+    /**
      * Returns the current (last generated) value for the given series without advancing it.
      *
      * @param seriesName the series name

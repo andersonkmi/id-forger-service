@@ -380,6 +380,81 @@ public class SequenceAdminControllerTest {
                 .isSameAs(unexpected);
     }
 
+    // --- deleteSeries ---
+
+    @Test
+    public void should_delete_series_and_return_200_with_done() throws Exception {
+        mockMvc.perform(delete("/idgenerator/v1/series/{seriesName}", "orders")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(content().string("Done"));
+
+        verify(sequenceAdminService).deleteSeries("orders");
+    }
+
+    @Test
+    public void should_return_404_with_reason_when_deleting_invalid_series() throws Exception {
+        doThrow(new InvalidSeriesException("Invalid series name provided"))
+                .when(sequenceAdminService).deleteSeries("unknown");
+
+        mockMvc.perform(delete("/idgenerator/v1/series/{seriesName}", "unknown")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound())
+                .andExpect(result -> assertThat(reasonOf(result.getResolvedException()))
+                        .isEqualTo("Series name is invalid"));
+    }
+
+    @Test
+    public void should_return_400_and_not_call_service_when_delete_api_version_is_unsupported() throws Exception {
+        mockMvc.perform(delete("/idgenerator/v2/series/{seriesName}", "orders")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(sequenceAdminService);
+    }
+
+    @Test
+    public void should_return_415_when_delete_content_type_is_not_json() throws Exception {
+        mockMvc.perform(delete("/idgenerator/v1/series/{seriesName}", "orders")
+                        .contentType(MediaType.TEXT_PLAIN))
+                .andExpect(status().isUnsupportedMediaType());
+
+        verifyNoInteractions(sequenceAdminService);
+    }
+
+    @Test
+    public void should_return_ok_response_entity_when_deleting_directly() {
+        ResponseEntity<String> response = new SequenceAdminController(sequenceAdminService).deleteSeries("orders");
+
+        assertThat(response.getStatusCode().value()).isEqualTo(200);
+        assertThat(response.getBody()).isEqualTo("Done");
+        verify(sequenceAdminService).deleteSeries("orders");
+    }
+
+    @Test
+    public void should_wrap_invalid_series_exception_as_cause_when_deleting_directly() {
+        InvalidSeriesException cause = new InvalidSeriesException("Invalid series name provided");
+        doThrow(cause).when(sequenceAdminService).deleteSeries("unknown");
+
+        assertThatThrownBy(() -> new SequenceAdminController(sequenceAdminService).deleteSeries("unknown"))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasCause(cause)
+                .satisfies(ex -> {
+                    ResponseStatusException rse = (ResponseStatusException) ex;
+                    assertThat(rse.getStatusCode().value()).isEqualTo(404);
+                    assertThat(rse.getReason()).isEqualTo("Series name is invalid");
+                });
+    }
+
+    @Test
+    public void should_propagate_unexpected_exceptions_when_deleting_series() {
+        IllegalStateException unexpected = new IllegalStateException("boom");
+        doThrow(unexpected).when(sequenceAdminService).deleteSeries("orders");
+
+        assertThatThrownBy(() -> new SequenceAdminController(sequenceAdminService).deleteSeries("orders"))
+                .isSameAs(unexpected);
+    }
+
     @Test
     public void should_return_current_value_for_known_series() throws Exception {
         when(sequenceAdminService.getCurrentValue("default")).thenReturn("100");

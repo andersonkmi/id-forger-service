@@ -4,6 +4,7 @@ import org.codecraftlabs.idgenerator.id.Sequence;
 import org.codecraftlabs.idgenerator.id.service.SequenceLastValueUpdateFailedException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -17,6 +18,7 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -67,6 +69,26 @@ class UniqueIdMapperRepositoryTest {
     }
 
     @Test
+    void should_return_true_when_series_exists() {
+        when(uniqueIdMapper.seriesExists("default")).thenReturn(true);
+        assertThat(repository.seriesExists("default")).isTrue();
+    }
+
+    @Test
+    void should_return_false_when_series_does_not_exist() {
+        when(uniqueIdMapper.seriesExists("unknown")).thenReturn(false);
+        assertThat(repository.seriesExists("unknown")).isFalse();
+    }
+
+    @Test
+    void should_throw_database_exception_on_data_access_error_for_series_exists() {
+        when(uniqueIdMapper.seriesExists("default")).thenThrow(new QueryTimeoutException("timeout"));
+        assertThatExceptionOfType(DatabaseException.class)
+                .isThrownBy(() -> repository.seriesExists("default"))
+                .withMessage("Failed to check if series exists");
+    }
+
+    @Test
     void should_return_sequence_details() {
         Sequence expected = new Sequence("public", "idfs_default", 1L, 1L, Long.MAX_VALUE, 1L, 1L, false, 10L);
         when(uniqueIdMapper.getSequenceDetails("public", "idfs_default")).thenReturn(expected);
@@ -101,7 +123,7 @@ class UniqueIdMapperRepositoryTest {
         when(uniqueIdMapper.getSequenceDetails("public", "idfs_new")).thenReturn(created);
 
         assertThat(repository.createSeries("public", "new", "NEW", "idfs_new", 1L, 1L, 1L, Long.MAX_VALUE)).isEqualTo(created);
-        verify(uniqueIdMapper).createSeries("public", "idfs_new", 1L, 1L, 1L, Long.MAX_VALUE);
+        verify(uniqueIdMapper).createSequence("public", "idfs_new", 1L, 1L, 1L, Long.MAX_VALUE);
         verify(uniqueIdMapper).insertSeriesDetails("new", "idfs_new", "NEW");
     }
 
@@ -111,7 +133,7 @@ class UniqueIdMapperRepositoryTest {
                 .thenReturn(new Sequence("public", "idfs_new", 1L, 1L, Long.MAX_VALUE, 1L, 1L, false, null));
 
         repository.createSeries("public", "new", "NEW", "idfs_new", null, null, null, null);
-        verify(uniqueIdMapper).createSeries("public", "idfs_new", null, null, null, null);
+        verify(uniqueIdMapper).createSequence("public", "idfs_new", null, null, null, null);
     }
 
     @Test
@@ -133,7 +155,7 @@ class UniqueIdMapperRepositoryTest {
     @Test
     void should_throw_database_exception_on_data_access_error_for_create_sequence() {
         doThrow(new QueryTimeoutException("db error")).when(uniqueIdMapper)
-                .createSeries(anyString(), anyString(), anyLong(), anyLong(), anyLong(), anyLong());
+                .createSequence(anyString(), anyString(), anyLong(), anyLong(), anyLong(), anyLong());
         assertThatExceptionOfType(DatabaseException.class)
                 .isThrownBy(() -> repository.createSeries("public", "new", "NEW", "idfs_new", 1L, 1L, 1L, Long.MAX_VALUE))
                 .withMessage("Failed to create sequence");
@@ -153,9 +175,34 @@ class UniqueIdMapperRepositoryTest {
     void should_throw_sequence_already_exists_exception_when_sequence_exists() {
         SQLException duplicate = new SQLException("relation \"idfs_new\" already exists", "42P07");
         doThrow(new BadSqlGrammarException("createSequence", "CREATE SEQUENCE public.idfs_new", duplicate))
-                .when(uniqueIdMapper).createSeries("public", "idfs_new", null, null, null, null);
+                .when(uniqueIdMapper).createSequence("public", "idfs_new", null, null, null, null);
         assertThatExceptionOfType(SequenceAlreadyExistsException.class)
                 .isThrownBy(() -> repository.createSeries("public", "new", "NEW", "idfs_new", null, null, null, null))
                 .withMessage("Sequence already exists");
+    }
+
+    @Test
+    void should_drop_sequence_and_delete_series_details() {
+        repository.deleteSeries("public", "new", "idfs_new");
+        InOrder inOrder = inOrder(uniqueIdMapper);
+        inOrder.verify(uniqueIdMapper).dropSequence("public", "idfs_new");
+        inOrder.verify(uniqueIdMapper).deleteSeriesDetails("new");
+    }
+
+    @Test
+    void should_throw_database_exception_when_drop_sequence_fails() {
+        doThrow(new QueryTimeoutException("db error")).when(uniqueIdMapper).dropSequence("public", "idfs_new");
+        assertThatExceptionOfType(DatabaseException.class)
+                .isThrownBy(() -> repository.deleteSeries("public", "new", "idfs_new"))
+                .withMessage("Failed to delete series and sequence");
+        verify(uniqueIdMapper, never()).deleteSeriesDetails(anyString());
+    }
+
+    @Test
+    void should_throw_database_exception_when_delete_series_details_fails() {
+        doThrow(new QueryTimeoutException("db error")).when(uniqueIdMapper).deleteSeriesDetails("new");
+        assertThatExceptionOfType(DatabaseException.class)
+                .isThrownBy(() -> repository.deleteSeries("public", "new", "idfs_new"))
+                .withMessage("Failed to delete series and sequence");
     }
 }
