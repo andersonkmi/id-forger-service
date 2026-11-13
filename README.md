@@ -131,33 +131,203 @@ docker build -t codecraftlabs/id-forger-service:1.2.0 docker/app
 
 
 ```bash
-docker run -d --name id-generator -p 8080:8080 codecraftlabs/idgenerator:1.2.0
+docker run -d --name id-generator -p 27110:27110 codecraftlabs/id-forger-service:1.2.0
 ```
 
 ### 3. Generate an ID
 
 ```bash
-curl http://localhost:8080/id
+curl http://localhost:27110/idgenerator/v1/ids/default
 ```
 
 Response:
 
 ```json
 {
-  "id": "ORD-20260425-000123"
+  "id": "1"
 }
 ```
+
+See [API Examples](#-api-examples) for every available endpoint.
 
 ### Managing the database container
 
 ```bash
-docker stop id-generator-db     # stop
-docker start id-generator-db    # start again
-docker rm -f id-generator-db    # remove the container
-docker volume rm id-generator-pgdata  # remove data (init.sql runs again on next creation)
+docker stop id-forger-dev-db     # stop
+docker start id-forger-dev-db    # start again
+docker rm -f id-forger-dev-db    # remove the container
+docker volume rm id-forger-dev-db-pgdata  # remove data (init.sql runs again on next creation)
 ```
 
 > **Note:** `init.sql` only runs when the data volume is empty. To pick up changes to it, remove the volume and recreate the container.
+
+---
+
+## 📡 API Examples
+
+All endpoints live under `/idgenerator/v1` and the service listens on port `27110` by default. The version is part of the path; an unsupported version (e.g. `/idgenerator/v2/...`) returns `400 Bad Request`.
+
+The examples below use the `default` and `product` series that `init.sql` creates.
+
+### Generate the next ID
+
+```bash
+curl http://localhost:27110/idgenerator/v1/ids/default
+```
+
+```json
+{ "id": "42" }
+```
+
+#### Output formats
+
+Use the optional `format` query parameter to change how the ID is rendered. When omitted or blank, `plain` is used.
+
+| Format        | Example request                     | Example output                                                     |
+| ------------- | ----------------------------------- | ------------------------------------------------------------------ |
+| `plain`       | `/ids/default?format=plain`         | `42`                                                               |
+| `prefixed`    | `/ids/product?format=prefixed`      | `PROD000001451000042` (series prefix + value padded to 15 digits)  |
+| `timestamped` | `/ids/default?format=timestamped`   | `000000000000042-1763049600000` (padded value + epoch millis)      |
+| `luhn`        | `/ids/default?format=luhn`          | `422` (value + Luhn check digit)                                   |
+| `base64`      | `/ids/default?format=base64`        | `NDI=` (Base64 of the plain value)                                 |
+| `sha256`      | `/ids/default?format=sha256`        | `73475cb4...` (64-char hex SHA-256 of the plain value)             |
+
+```bash
+curl "http://localhost:27110/idgenerator/v1/ids/product?format=prefixed"
+```
+
+```json
+{ "id": "PROD000001451000042" }
+```
+
+An unknown series returns `404 Not Found`; an unknown format returns `400 Bad Request`.
+
+### Create a series
+
+Only `name` and `prefix` are required. Numeric options that are left out fall back to the database defaults (start/min `1`, increment `1`, max `9223372036854775807`).
+
+```bash
+curl -X POST http://localhost:27110/idgenerator/v1/series \
+  -H "Content-Type: application/json" \
+  -d '{
+        "name": "orders",
+        "prefix": "ORD",
+        "startingValue": 500,
+        "incrementBy": 5,
+        "minimumValue": 500,
+        "maximumValue": 10000
+      }'
+```
+
+Response (`201 Created`):
+
+```json
+{
+  "name": "orders",
+  "prefix": "ORD",
+  "startingValue": 500,
+  "minimumValue": 500,
+  "maximumValue": 10000,
+  "incrementBy": 5
+}
+```
+
+Validation rules:
+
+* `name`: lowercase letters and digits only, up to 50 characters
+* `prefix`: letters and digits only, up to 10 characters
+* `startingValue`, `minimumValue`, `maximumValue`: zero or positive
+* `incrementBy`: positive
+
+Invalid fields return `400 Bad Request` with a map of field errors, e.g.:
+
+```json
+{ "name": "name must contain only lowercase letters and digits" }
+```
+
+Creating a series that already exists also returns `400 Bad Request`.
+
+### Get the current value of a series
+
+Returns the last generated value without advancing the sequence.
+
+```bash
+curl http://localhost:27110/idgenerator/v1/series/default/currentValue
+```
+
+```json
+{ "id": "42" }
+```
+
+### Get series details
+
+```bash
+curl http://localhost:27110/idgenerator/v1/series/product/details
+```
+
+```json
+{
+  "schema": "public",
+  "name": "idfs_product",
+  "startValue": 1451000000,
+  "minValue": 1451000000,
+  "maxValue": 1451999999,
+  "incrementBy": 1,
+  "cacheSize": 1,
+  "cycle": false,
+  "lastValue": 1451000042
+}
+```
+
+### Reset the last value of a series
+
+The next generated ID will be `newLastValue + incrementBy`. The value must stay within the series' min/max range, otherwise `400 Bad Request` is returned.
+
+```bash
+curl -X PATCH http://localhost:27110/idgenerator/v1/series/product \
+  -H "Content-Type: application/json" \
+  -d '{ "newLastValue": 1451500000 }'
+```
+
+```json
+{ "id": "1451500000" }
+```
+
+### Delete a series
+
+Removes the series together with its backing database sequence. The endpoint requires the `Content-Type: application/json` header (other content types return `415 Unsupported Media Type`).
+
+```bash
+curl -X DELETE http://localhost:27110/idgenerator/v1/series/orders \
+  -H "Content-Type: application/json"
+```
+
+Response (`200 OK`):
+
+```
+Done
+```
+
+### Health check
+
+```bash
+curl http://localhost:27110/actuator/health
+```
+
+```json
+{ "status": "UP" }
+```
+
+### Error responses
+
+| Status                        | When                                                                 |
+| ----------------------------- | -------------------------------------------------------------------- |
+| `400 Bad Request`             | Invalid format, validation errors, out-of-range values, unsupported API version |
+| `404 Not Found`               | Unknown series                                                       |
+| `415 Unsupported Media Type`  | Missing or non-JSON `Content-Type` on POST/PATCH/DELETE              |
+| `503 Service Unavailable`     | Admin (`/series`) endpoints saturated; retry after the `Retry-After` hint |
+
+> Error messages are only included in the response body when the `local` profile is active.
 
 ---
 
@@ -224,7 +394,7 @@ If you want zero infrastructure, UUID/ULID may be a better fit.
 ## 🛣️ Roadmap
 
 * [ ] UI for admin/management purposes
-* [ ] API examples
+* [x] API examples
 
 ---
 
