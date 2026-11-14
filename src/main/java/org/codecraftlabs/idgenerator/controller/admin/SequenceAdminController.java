@@ -10,6 +10,7 @@ import org.codecraftlabs.idgenerator.id.service.InvalidSeriesException;
 import org.codecraftlabs.idgenerator.id.service.SequenceAdminService;
 import org.codecraftlabs.idgenerator.id.service.SequenceDetailsRetrievalException;
 import org.codecraftlabs.idgenerator.id.service.SequenceLastValueUpdateFailedException;
+import org.codecraftlabs.idgenerator.id.service.SeriesAlreadyExistsException;
 import org.codecraftlabs.idgenerator.id.service.SeriesData;
 import org.codecraftlabs.idgenerator.id.service.SeriesNotCreatedException;
 import org.slf4j.Logger;
@@ -36,6 +37,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
+import static org.springframework.http.HttpStatus.CONFLICT;
 import static org.springframework.http.HttpStatus.CREATED;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 import static org.springframework.http.HttpStatus.OK;
@@ -68,8 +70,8 @@ public class SequenceAdminController {
      * request fall back to the database defaults.
      *
      * @param request the validated series definition
-     * @return HTTP 201 with the submitted series, 400 if validation fails or the series
-     *         could not be created (e.g. it already exists)
+     * @return HTTP 201 with the submitted series, 409 if the series already exists,
+     *         or 400 if validation fails or the series could not be created
      */
     @Bulkhead(name = "admin", type = Bulkhead.Type.SEMAPHORE)
     @PostMapping(value = "/series",
@@ -83,6 +85,10 @@ public class SequenceAdminController {
             var convertedResponse = convertFrom(series);
             convertedResponse.setPrefix(request.getPrefix());
             return status(CREATED).body(convertedResponse);
+        } catch (SeriesAlreadyExistsException exception) {
+            // Client-side conflict: single line, no stack trace
+            LOGGER.warn("Series already exists: {}", exception.getMessage());
+            throw new ResponseStatusException(CONFLICT, exception.getMessage(), exception);
         } catch (SeriesNotCreatedException exception) {
             LOGGER.error("Could not create new series", exception);
             throw new ResponseStatusException(BAD_REQUEST, exception.getMessage(), exception);

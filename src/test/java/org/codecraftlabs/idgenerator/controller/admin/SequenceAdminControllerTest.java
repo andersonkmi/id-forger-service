@@ -11,6 +11,7 @@ import org.codecraftlabs.idgenerator.id.service.SequenceAdminService;
 import org.codecraftlabs.idgenerator.id.service.SequenceDetailsRetrievalException;
 import org.codecraftlabs.idgenerator.id.service.SequenceLastValueUpdateFailedException;
 import org.codecraftlabs.idgenerator.id.service.SeriesData;
+import org.codecraftlabs.idgenerator.id.service.SeriesAlreadyExistsException;
 import org.codecraftlabs.idgenerator.id.service.SeriesNotCreatedException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -111,14 +112,28 @@ public class SequenceAdminControllerTest {
     public void should_return_400_with_reason_when_series_not_created() throws Exception {
         SeriesData expected = new SeriesData("orders", "ORD", null, null, null, null);
         when(sequenceAdminService.createSeries(expected))
-                .thenThrow(new SeriesNotCreatedException("Sequence already exists", new RuntimeException()));
+                .thenThrow(new SeriesNotCreatedException("Failed to create sequence", new RuntimeException()));
 
         mockMvc.perform(post("/idgenerator/v1/series")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"orders\",\"prefix\":\"ORD\"}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(result -> assertThat(reasonOf(result.getResolvedException()))
-                        .isEqualTo("Sequence already exists"));
+                        .isEqualTo("Failed to create sequence"));
+    }
+
+    @Test
+    public void should_return_409_with_reason_when_series_already_exists() throws Exception {
+        SeriesData expected = new SeriesData("orders", "ORD", null, null, null, null);
+        when(sequenceAdminService.createSeries(expected))
+                .thenThrow(new SeriesAlreadyExistsException("Series already exists", new RuntimeException()));
+
+        mockMvc.perform(post("/idgenerator/v1/series")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"orders\",\"prefix\":\"ORD\"}"))
+                .andExpect(status().isConflict())
+                .andExpect(result -> assertThat(reasonOf(result.getResolvedException()))
+                        .isEqualTo("Series already exists"));
     }
 
     @Test
@@ -357,7 +372,7 @@ public class SequenceAdminControllerTest {
 
     @Test
     public void should_wrap_series_not_created_exception_as_cause_when_invoked_directly() {
-        SeriesNotCreatedException cause = new SeriesNotCreatedException("Sequence already exists", new RuntimeException());
+        SeriesNotCreatedException cause = new SeriesNotCreatedException("Failed to create sequence", new RuntimeException());
         when(sequenceAdminService.createSeries(new SeriesData("orders", "ORD", null, null, null, null)))
                 .thenThrow(cause);
         Series request = series("orders", "ORD", null, null, null, null);
@@ -368,7 +383,24 @@ public class SequenceAdminControllerTest {
                 .satisfies(ex -> {
                     ResponseStatusException rse = (ResponseStatusException) ex;
                     assertThat(rse.getStatusCode().value()).isEqualTo(400);
-                    assertThat(rse.getReason()).isEqualTo("Sequence already exists");
+                    assertThat(rse.getReason()).isEqualTo("Failed to create sequence");
+                });
+    }
+
+    @Test
+    public void should_wrap_series_already_exists_exception_as_conflict_when_invoked_directly() {
+        SeriesAlreadyExistsException cause = new SeriesAlreadyExistsException("Series already exists", new RuntimeException());
+        when(sequenceAdminService.createSeries(new SeriesData("orders", "ORD", null, null, null, null)))
+                .thenThrow(cause);
+        Series request = series("orders", "ORD", null, null, null, null);
+
+        assertThatThrownBy(() -> new SequenceAdminController(sequenceAdminService).createSeries(request))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasCause(cause)
+                .satisfies(ex -> {
+                    ResponseStatusException rse = (ResponseStatusException) ex;
+                    assertThat(rse.getStatusCode().value()).isEqualTo(409);
+                    assertThat(rse.getReason()).isEqualTo("Series already exists");
                 });
     }
 

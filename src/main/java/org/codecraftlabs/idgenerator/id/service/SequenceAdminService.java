@@ -4,6 +4,7 @@ import jakarta.annotation.Nonnull;
 import org.codecraftlabs.idgenerator.controller.admin.SequenceDataResponse;
 import org.codecraftlabs.idgenerator.id.Sequence;
 import org.codecraftlabs.idgenerator.id.repository.DatabaseException;
+import org.codecraftlabs.idgenerator.id.repository.SequenceAlreadyExistsException;
 import org.codecraftlabs.idgenerator.id.repository.SequenceNotFoundException;
 import org.codecraftlabs.idgenerator.id.repository.SeriesDetail;
 import org.codecraftlabs.idgenerator.id.repository.UniqueIdMapperRepository;
@@ -33,7 +34,8 @@ public class SequenceAdminService {
      *
      * @param request the series definition
      * @return the metadata of the newly created sequence
-     * @throws SeriesNotCreatedException if the sequence already exists or the database operation fails
+     * @throws SeriesAlreadyExistsException if the series name or its backing sequence already exists
+     * @throws SeriesNotCreatedException    if the database operation fails for any other reason
      */
     @Nonnull
     public SeriesData createSeries(@Nonnull SeriesData request) {
@@ -47,6 +49,8 @@ public class SequenceAdminService {
                     request.minimumValue(),
                     request.maximumValue());
             return convert(request, sequence);
+        } catch (SequenceAlreadyExistsException exception) {
+            throw new SeriesAlreadyExistsException(exception.getMessage(), exception);
         } catch (DatabaseException exception) {
             throw new SeriesNotCreatedException(exception.getMessage(), exception);
         }

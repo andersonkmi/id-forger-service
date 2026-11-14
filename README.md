@@ -209,6 +209,24 @@ docker volume rm id-forger-dev-db-pgdata  # remove data (init.sql runs again on 
 
 > **Note:** `init.sql` only runs when the data volume is empty. To pick up changes to it, remove the volume and recreate the container.
 
+### Logging
+
+Logs are written to the console and to `logs/id-forger-service.log`, relative to the directory the application is started from. The file rolls over daily and whenever it reaches the maximum size. Archives go to `logs/archived/`, and the oldest are deleted once either retention limit is reached.
+
+| Setting                    | Default | Environment variable                            |
+| -------------------------- | ------- | ----------------------------------------------- |
+| Maximum size of one file   | `10MB`  | `LOGGING_LOGBACK_ROLLINGPOLICY_MAX_FILE_SIZE`   |
+| Days of archives kept      | `30`    | `LOGGING_LOGBACK_ROLLINGPOLICY_MAX_HISTORY`     |
+| Total size of all archives | `1GB`   | `LOGGING_LOGBACK_ROLLINGPOLICY_TOTAL_SIZE_CAP`  |
+
+For example:
+
+```bash
+LOGGING_LOGBACK_ROLLINGPOLICY_MAX_HISTORY=7 LOGGING_LOGBACK_ROLLINGPOLICY_TOTAL_SIZE_CAP=200MB ./gradlew bootRun
+```
+
+Requests rejected because of client errors (unknown series, invalid format, existing series) are logged as a single `WARN` line. Server-side failures are logged at `ERROR` with the stack trace.
+
 ---
 
 ## 📡 API Examples
@@ -305,7 +323,7 @@ Invalid fields return `400 Bad Request` with a map of field errors, e.g.:
 { "name": "name must contain only lowercase letters and digits" }
 ```
 
-Creating a series that already exists also returns `400 Bad Request`.
+Creating a series that already exists returns `409 Conflict`.
 
 ### Get the current value of a series
 
@@ -379,6 +397,7 @@ curl http://localhost:27110/actuator/health
 | ----------------------------- | -------------------------------------------------------------------- |
 | `400 Bad Request`             | Invalid format, validation errors, out-of-range values, unsupported API version |
 | `404 Not Found`               | Unknown series                                                       |
+| `409 Conflict`                | Creating a series that already exists                                |
 | `415 Unsupported Media Type`  | Missing or non-JSON `Content-Type` on POST/PATCH                     |
 | `503 Service Unavailable`     | Admin (`/series`) endpoints saturated; retry after the `Retry-After` hint |
 
@@ -444,11 +463,16 @@ Be aware of the tradeoffs when choosing this approach:
 
 If you want zero infrastructure, UUID/ULID may be a better fit.
 
+### Known limitations
+
+* **The admin endpoints have no authentication yet.** Anyone who can reach `/idgenerator/v1/series/**` can create, delete or reset series. Resetting a sequence to a lower value makes it issue IDs that were already handed out. Until authentication is added, expose only the ID generation endpoint publicly, and restrict the admin endpoints at the network level (gateway, firewall or private network).
+
 ---
 
 ## 🛣️ Roadmap
 
 * [ ] UI for admin/management purposes
+* [ ] Authentication for the admin endpoints
 * [x] API examples
 * [x] OpenAPI specification
 
