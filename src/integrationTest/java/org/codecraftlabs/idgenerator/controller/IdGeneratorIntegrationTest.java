@@ -13,6 +13,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
+import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
@@ -224,6 +225,22 @@ public class IdGeneratorIntegrationTest {
     }
 
     @Test
+    public void testPatchWithoutNewLastValueReturns400AndKeepsSequence() {
+        String before = getId("/idgenerator/v1/ids/default");
+
+        Assertions.assertThatExceptionOfType(HttpClientErrorException.class)
+                .isThrownBy(() -> restClient.patch()
+                        .uri("/idgenerator/v1/series/default")
+                        .body(Map.of())
+                        .retrieve()
+                        .body(IdResponse.class))
+                .withMessageContaining("400 Bad Request");
+
+        Assertions.assertThat(Long.parseLong(getId("/idgenerator/v1/ids/default")))
+                .isGreaterThan(Long.parseLong(before));
+    }
+
+    @Test
     public void testPatchInvalidSeriesReturns404() {
         Assertions.assertThatExceptionOfType(HttpClientErrorException.class)
                 .isThrownBy(() -> patchLastValue("fake", 10L))
@@ -321,7 +338,9 @@ public class IdGeneratorIntegrationTest {
         createSeries(Map.of("name", name, "prefix", "DEL"));
         getId("/idgenerator/v1/ids/" + name);
 
-        Assertions.assertThat(deleteSeries(name)).isEqualTo("Done");
+        ResponseEntity<Void> response = deleteSeries(name);
+        Assertions.assertThat(response.getStatusCode().value()).isEqualTo(204);
+        Assertions.assertThat(response.hasBody()).isFalse();
 
         assertGetFails("/idgenerator/v1/series/" + name + "/details", "404 Not Found");
     }
@@ -370,11 +389,13 @@ public class IdGeneratorIntegrationTest {
         Assertions.assertThat(getId("/idgenerator/v1/ids/" + name)).isEqualTo("1");
     }
 
-    private String deleteSeries(String series) {
-        return restClient.delete()
+    // Uses a client without the default Content-Type header: a DELETE has no body,
+    // so the endpoint must accept it without one
+    private ResponseEntity<Void> deleteSeries(String series) {
+        return RestClient.create("http://localhost:" + port).delete()
                 .uri("/idgenerator/v1/series/" + series)
                 .retrieve()
-                .body(String.class);
+                .toBodilessEntity();
     }
 
     private Series createSeries(Object body) {

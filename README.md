@@ -355,18 +355,13 @@ curl -X PATCH http://localhost:27110/idgenerator/v1/series/product \
 
 ### Delete a series
 
-Removes the series together with its backing database sequence. The endpoint requires the `Content-Type: application/json` header (other content types return `415 Unsupported Media Type`).
+Removes the series together with its backing database sequence. The request has no body, so no `Content-Type` header is needed.
 
 ```bash
-curl -X DELETE http://localhost:27110/idgenerator/v1/series/orders \
-  -H "Content-Type: application/json"
+curl -i -X DELETE http://localhost:27110/idgenerator/v1/series/orders
 ```
 
-Response (`200 OK`):
-
-```
-Done
-```
+Response: `204 No Content` with an empty body. An unknown series returns `404 Not Found`.
 
 ### Health check
 
@@ -384,7 +379,7 @@ curl http://localhost:27110/actuator/health
 | ----------------------------- | -------------------------------------------------------------------- |
 | `400 Bad Request`             | Invalid format, validation errors, out-of-range values, unsupported API version |
 | `404 Not Found`               | Unknown series                                                       |
-| `415 Unsupported Media Type`  | Missing or non-JSON `Content-Type` on POST/PATCH/DELETE              |
+| `415 Unsupported Media Type`  | Missing or non-JSON `Content-Type` on POST/PATCH                     |
 | `503 Service Unavailable`     | Admin (`/series`) endpoints saturated; retry after the `Retry-After` hint |
 
 > Error messages are only included in the response body when the `local` profile is active.

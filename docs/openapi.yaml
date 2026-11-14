@@ -199,28 +199,14 @@ paths:
       summary: Delete a series
       description: |
         Removes the series and drops its backing database sequence in a single
-        transaction.
-
-        **Note:** the endpoint declares `consumes = application/json`, so the request
-        must send `Content-Type: application/json` even though it has no body;
-        otherwise `415 Unsupported Media Type` is returned.
+        transaction. The request has no body, so no `Content-Type` header is required.
       parameters:
         - $ref: '#/components/parameters/SeriesName'
       responses:
-        '200':
-          description: |
-            Series deleted. The body is the literal text `Done`, returned with a
-            `Content-Type: application/json` header (it is not a JSON-encoded string).
-          content:
-            application/json:
-              schema:
-                type: string
-                const: Done
-              example: Done
+        '204':
+          description: Series deleted. The response has no body.
         '404':
           $ref: '#/components/responses/SeriesNotFound'
-        '415':
-          $ref: '#/components/responses/UnsupportedMediaType'
         '500':
           description: The database operation failed.
           content:

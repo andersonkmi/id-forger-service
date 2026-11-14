@@ -92,19 +92,18 @@ public class SequenceAdminController {
     /**
      * Deletes an existing series together with its backing database sequence.
      *
+     * <p>The request has no body, so no {@code Content-Type} header is required.</p>
+     *
      * @param seriesName the name of the series to delete
-     * @return HTTP 200 with the body {@code "Done"} once the series has been removed,
+     * @return HTTP 204 with no body once the series has been removed,
      *         or 404 if the series is unknown
      */
     @Bulkhead(name = "admin", type = Bulkhead.Type.SEMAPHORE)
-    @DeleteMapping(value = "/series/{seriesName}",
-            version = ApiPaths.V1,
-            produces = APPLICATION_JSON_VALUE,
-            consumes = APPLICATION_JSON_VALUE)
-    public ResponseEntity<String> deleteSeries(@PathVariable String seriesName) {
+    @DeleteMapping(value = "/series/{seriesName}", version = ApiPaths.V1)
+    public ResponseEntity<Void> deleteSeries(@PathVariable String seriesName) {
         try {
             this.sequenceAdminService.deleteSeries(seriesName);
-            return ResponseEntity.ok("Done");
+            return ResponseEntity.noContent().build();
         } catch (InvalidSeriesException exception) {
             LOGGER.warn("Series name is invalid: {}", exception.getMessage());
             throw new ResponseStatusException(NOT_FOUND, "Series name is invalid", exception);
@@ -116,7 +115,7 @@ public class SequenceAdminController {
      *
      * @param seriesName      the name of the series whose sequence should be updated
      * @param seriesLastValue request body containing the new last value
-     * @return HTTP 200 with the new last value, or 400 if the update fails
+     * @return HTTP 200 with the new last value, or 400 if the body is invalid or the update fails
      */
     @Bulkhead(name = "admin", type = Bulkhead.Type.SEMAPHORE)
     @PatchMapping(value = "/series/{seriesName}",
@@ -124,7 +123,7 @@ public class SequenceAdminController {
             produces = APPLICATION_JSON_VALUE,
             consumes = APPLICATION_JSON_VALUE)
     public ResponseEntity<IdResponse> changeLastValue(@PathVariable String seriesName,
-                                                      @RequestBody SeriesLastValue seriesLastValue) {
+                                                      @Valid @RequestBody SeriesLastValue seriesLastValue) {
         try {
             this.sequenceAdminService.updateSequenceLastValue(seriesName, seriesLastValue.newLastValue());
             return status(OK).body(new IdResponse(String.valueOf(seriesLastValue.newLastValue())));
