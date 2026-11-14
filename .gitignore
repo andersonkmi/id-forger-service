@@ -18,6 +18,8 @@ dist/
 
 # Package files
 *.jar
+# ...except the Gradle wrapper, which must be committed so ./gradlew works on a fresh clone
+!gradle/wrapper/gradle-wrapper.jar
 
 # Maven
 target/
@@ -49,7 +51,6 @@ Thumbs.db
 
 hs_err_pid*
 replay_pid*
-gradle/
 .gradle/
 build/
 

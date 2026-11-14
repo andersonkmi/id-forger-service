@@ -118,7 +118,7 @@ Or with Docker:
 - Build the application:
 
 ```bash
-gradle clean build
+./gradlew clean build
 ```
 
 - Create the application image using the following command:
