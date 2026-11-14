@@ -66,13 +66,13 @@ public class SequenceAdminServiceTest {
     }
 
     @Test
-    public void when_sequence_already_exists_should_throw_series_not_created_exception() {
-        SequenceAlreadyExistsException cause = new SequenceAlreadyExistsException("Sequence already exists", new RuntimeException());
+    public void when_series_already_exists_should_throw_series_already_exists_exception() {
+        SequenceAlreadyExistsException cause = new SequenceAlreadyExistsException("Series already exists", new RuntimeException());
         when(uniqueIdRepository.createSeries("public", "orders", "ORD", "idfs_orders", null, null, null, null)).thenThrow(cause);
-        assertThatExceptionOfType(SeriesNotCreatedException.class)
+        assertThatExceptionOfType(SeriesAlreadyExistsException.class)
                 .isThrownBy(() -> sequenceAdminService.createSeries(
                         new SeriesData("orders", "ORD", null, null, null, null)))
-                .withMessage("Sequence already exists")
+                .withMessage("Series already exists")
                 .withCause(cause);
     }
 

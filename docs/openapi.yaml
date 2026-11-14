@@ -127,8 +127,8 @@ paths:
         '400':
           description: |
             Validation failed (body is a map of field name to error message), or the
-            series could not be created, e.g. because it already exists (body is the
-            default error response).
+            series could not be created, e.g. because the sequence options are
+            inconsistent (body is the default error response).
           content:
             application/json:
               schema:
@@ -140,13 +140,24 @@ paths:
                   summary: Field validation errors
                   value:
                     name: name must contain only lowercase letters and digits
-                alreadyExists:
-                  summary: Series already exists
+                notCreated:
+                  summary: Series could not be created
                   value:
                     timestamp: '2026-11-14T10:15:30.000+00:00'
                     status: 400
                     error: Bad Request
                     path: /idgenerator/v1/series
+        '409':
+          description: A series with this name, or its backing sequence, already exists.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                timestamp: '2026-11-14T10:15:30.000+00:00'
+                status: 409
+                error: Conflict
+                path: /idgenerator/v1/series
         '415':
           $ref: '#/components/responses/UnsupportedMediaType'
         '503':

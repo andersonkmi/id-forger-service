@@ -296,16 +296,6 @@ public class IdGeneratorIntegrationTest {
         Assertions.assertThat(getId("/idgenerator/v1/ids/" + name)).isEqualTo("1");
     }
 
-    @Test
-    public void testCreateExistingSeriesReturns400() {
-        String name = uniqueSeriesName();
-        createSeries(Map.of("name", name, "prefix", "DUP"));
-
-        Assertions.assertThatExceptionOfType(HttpClientErrorException.class)
-                .isThrownBy(() -> createSeries(Map.of("name", name, "prefix", "DUP")))
-                .withMessageContaining("400 Bad Request");
-    }
-
     @ParameterizedTest
     @ValueSource(strings = {
             "{\"name\":\"\",\"prefix\":\"ORD\"}",
@@ -319,6 +309,24 @@ public class IdGeneratorIntegrationTest {
         Assertions.assertThatExceptionOfType(HttpClientErrorException.class)
                 .isThrownBy(() -> createSeries(body))
                 .withMessageContaining("400 Bad Request");
+    }
+
+    @Test
+    public void testCreateSeriesTwiceReturns409() {
+        String name = uniqueSeriesName();
+        createSeries(Map.of("name", name, "prefix", "DUP"));
+
+        Assertions.assertThatExceptionOfType(HttpClientErrorException.class)
+                .isThrownBy(() -> createSeries(Map.of("name", name, "prefix", "DUP")))
+                .withMessageContaining("409 Conflict");
+        Assertions.assertThat(getId("/idgenerator/v1/ids/" + name)).isEqualTo("1");
+    }
+
+    @Test
+    public void testCreatingSeededSeriesReturns409() {
+        Assertions.assertThatExceptionOfType(HttpClientErrorException.class)
+                .isThrownBy(() -> createSeries(Map.of("name", "default", "prefix", "STD")))
+                .withMessageContaining("409 Conflict");
     }
 
     @Test

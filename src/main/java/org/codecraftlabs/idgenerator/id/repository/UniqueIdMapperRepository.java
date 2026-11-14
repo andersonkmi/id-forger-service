@@ -18,7 +18,11 @@ import java.sql.SQLException;
  */
 @Component
 public class UniqueIdMapperRepository {
+    /** Raised by {@code CREATE SEQUENCE} when the sequence already exists. */
     private static final String DUPLICATE_TABLE_SQL_STATE = "42P07";
+    /** Raised when inserting a series name that is already registered in {@code series_details}. */
+    private static final String UNIQUE_VIOLATION_SQL_STATE = "23505";
+    /** Raised when a referenced sequence does not exist (e.g. dropped concurrently). */
     private static final String UNDEFINED_TABLE_SQL_STATE = "42P01";
     private final UniqueIdMapper uniqueIdMapper;
 
@@ -47,7 +51,7 @@ public class UniqueIdMapperRepository {
         try {
             return uniqueIdMapper.getNextIdForSeries(seriesName);
         } catch (DataAccessException exception) {
-            if (isUndefinedTable(exception)) {
+            if (hasSqlState(exception, UNDEFINED_TABLE_SQL_STATE)) {
                 throw new SequenceNotFoundException("Sequence backing series '" + seriesName + "' does not exist");
             }
             throw new DatabaseException("Failed to get the next sequence value", exception);
@@ -123,7 +127,7 @@ public class UniqueIdMapperRepository {
         try {
             this.uniqueIdMapper.updateSequenceLastValue(sequenceName, lastValue);
         } catch (DataAccessException exception) {
-            if (isUndefinedTable(exception)) {
+            if (hasSqlState(exception, UNDEFINED_TABLE_SQL_STATE)) {
                 throw new SequenceNotFoundException("Sequence '" + sequenceName + "' does not exist");
             }
             throw new SequenceLastValueUpdateFailedException("Failed to update sequence last value", exception);
@@ -145,7 +149,7 @@ public class UniqueIdMapperRepository {
      * @param minValue    the minimum allowed value
      * @param maxValue    the maximum allowed value
      * @return the metadata of the newly created sequence
-     * @throws SequenceAlreadyExistsException if a sequence with the same name already exists
+     * @throws SequenceAlreadyExistsException if the sequence or the series name already exists
      * @throws DatabaseException if the database operation fails
      */
     @Nonnull
@@ -167,9 +171,9 @@ public class UniqueIdMapperRepository {
             }
             return sequence;
         } catch (DataAccessException exception) {
-            if (exception.getMostSpecificCause() instanceof SQLException sqlException
-                    && DUPLICATE_TABLE_SQL_STATE.equals(sqlException.getSQLState())) {
-                throw new SequenceAlreadyExistsException("Sequence already exists", exception);
+            if (hasSqlState(exception, DUPLICATE_TABLE_SQL_STATE)
+                    || hasSqlState(exception, UNIQUE_VIOLATION_SQL_STATE)) {
+                throw new SequenceAlreadyExistsException("Series already exists", exception);
             }
             throw new DatabaseException("Failed to create sequence", exception);
         }
@@ -198,8 +202,12 @@ public class UniqueIdMapperRepository {
         }
     }
 
-    private boolean isUndefinedTable(@Nonnull DataAccessException exception) {
+    /**
+     * Checks whether the root cause of a data access failure is a {@link SQLException}
+     * carrying the given SQLState.
+     */
+    private boolean hasSqlState(@Nonnull DataAccessException exception, @Nonnull String sqlState) {
         return exception.getMostSpecificCause() instanceof SQLException sqlException
-                && UNDEFINED_TABLE_SQL_STATE.equals(sqlException.getSQLState());
+                && sqlState.equals(sqlException.getSQLState());
     }
 }

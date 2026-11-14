@@ -8,6 +8,7 @@ import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.QueryTimeoutException;
 import org.springframework.jdbc.BadSqlGrammarException;
 
@@ -198,7 +199,17 @@ class UniqueIdMapperRepositoryTest {
                 .when(uniqueIdMapper).createSequence("public", "idfs_new", null, null, null, null);
         assertThatExceptionOfType(SequenceAlreadyExistsException.class)
                 .isThrownBy(() -> repository.createSeries("public", "new", "NEW", "idfs_new", null, null, null, null))
-                .withMessage("Sequence already exists");
+                .withMessage("Series already exists");
+    }
+
+    @Test
+    void should_throw_sequence_already_exists_exception_when_series_name_is_already_registered() {
+        SQLException duplicateKey = new SQLException("duplicate key value violates unique constraint \"series_details_pkey\"", "23505");
+        doThrow(new DuplicateKeyException("insertSeriesDetails", duplicateKey))
+                .when(uniqueIdMapper).insertSeriesDetails("new", "idfs_new", "NEW");
+        assertThatExceptionOfType(SequenceAlreadyExistsException.class)
+                .isThrownBy(() -> repository.createSeries("public", "new", "NEW", "idfs_new", null, null, null, null))
+                .withMessage("Series already exists");
     }
 
     @Test
