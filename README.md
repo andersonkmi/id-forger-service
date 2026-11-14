@@ -148,7 +148,7 @@ Response:
 }
 ```
 
-See [API Examples](#-api-examples) for every available endpoint.
+See [API Examples](#-api-examples) for every available endpoint, or the [OpenAPI spec](docs/openapi.yaml) for the full API contract.
 
 ### Managing the database container
 
@@ -168,6 +168,18 @@ docker volume rm id-forger-dev-db-pgdata  # remove data (init.sql runs again on 
 All endpoints live under `/idgenerator/v1` and the service listens on port `27110` by default. The version is part of the path; an unsupported version (e.g. `/idgenerator/v2/...`) returns `400 Bad Request`.
 
 The examples below use the `default` and `product` series that `init.sql` creates.
+
+### OpenAPI specification
+
+The full API contract is described in an OpenAPI 3.1 spec at [`docs/openapi.yaml`](docs/openapi.yaml). It covers every endpoint, its request and response schemas (including validation rules), and the possible error responses.
+
+Use it to:
+
+* Browse the API in a viewer such as [Swagger Editor](https://editor.swagger.io/) (paste or import the file)
+* Generate client SDKs in your language with tools like [OpenAPI Generator](https://openapi-generator.tech/)
+* Import the endpoints into Postman, Insomnia or similar tools
+
+> The spec is maintained by hand. When you add or change an endpoint, update `docs/openapi.yaml` too.
 
 ### Generate the next ID
 
@@ -369,7 +381,7 @@ To be added.
 
 ## 🔌 Integration
 
-Works with any language via HTTP.
+Works with any language via HTTP. Client code can be generated from the [OpenAPI spec](docs/openapi.yaml).
 
 Planned:
 
@@ -395,6 +407,7 @@ If you want zero infrastructure, UUID/ULID may be a better fit.
 
 * [ ] UI for admin/management purposes
 * [x] API examples
+* [x] OpenAPI specification
 
 ---
 
