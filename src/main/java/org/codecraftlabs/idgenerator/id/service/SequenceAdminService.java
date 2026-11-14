@@ -5,9 +5,8 @@ import org.codecraftlabs.idgenerator.controller.admin.SequenceDataResponse;
 import org.codecraftlabs.idgenerator.id.Sequence;
 import org.codecraftlabs.idgenerator.id.repository.DatabaseException;
 import org.codecraftlabs.idgenerator.id.repository.SequenceNotFoundException;
+import org.codecraftlabs.idgenerator.id.repository.SeriesDetail;
 import org.codecraftlabs.idgenerator.id.repository.UniqueIdMapperRepository;
-import org.codecraftlabs.idgenerator.id.series.SeriesInfo;
-import org.codecraftlabs.idgenerator.id.series.SeriesToSequenceMapper;
 import org.springframework.stereotype.Service;
 
 import static java.lang.String.valueOf;
@@ -23,12 +22,9 @@ public class SequenceAdminService {
     private static final String SEQUENCE_NAME_PREFIX = "idfs_";
 
     private final UniqueIdMapperRepository uniqueIdMapperRepository;
-    private final SeriesToSequenceMapper seriesToSequenceMapper;
 
-    public SequenceAdminService(@Nonnull UniqueIdMapperRepository uniqueIdMapperRepository,
-                                @Nonnull SeriesToSequenceMapper seriesToSequenceMapper) {
+    public SequenceAdminService(@Nonnull UniqueIdMapperRepository uniqueIdMapperRepository) {
         this.uniqueIdMapperRepository = uniqueIdMapperRepository;
-        this.seriesToSequenceMapper = seriesToSequenceMapper;
     }
 
     /**
@@ -62,14 +58,10 @@ public class SequenceAdminService {
      * transaction, so nothing is removed if either step fails.
      *
      * @param seriesName the series name
-     * @throws InvalidSeriesException if the series is not registered or cannot be mapped to a sequence
+     * @throws InvalidSeriesException if the series is not registered
      * @throws DatabaseException      if the database operation fails
      */
     public void deleteSeries(@Nonnull String seriesName) {
-        boolean exists = this.uniqueIdMapperRepository.seriesExists(seriesName);
-        if (!exists) {
-            throw new InvalidSeriesException("Invalid series name provided");
-        }
         this.uniqueIdMapperRepository.deleteSeries(SCHEMA, seriesName, resolveSequenceName(seriesName));
     }
 
@@ -158,18 +150,21 @@ public class SequenceAdminService {
     }
 
     /**
-     * Resolves a series name to its backing sequence name via the {@code series_details} mapping.
+     * Resolves a series name to its backing sequence name by reading the live
+     * {@code series_details} mapping (nothing is cached, so the result is always current).
      *
      * @param seriesName the series name
      * @return the sequence name mapped to the series
-     * @throws InvalidSeriesException if the series is not mapped
+     * @throws InvalidSeriesException if the series is not registered
      * @throws DatabaseException      if loading the mapping fails
      */
     @Nonnull
     private String resolveSequenceName(@Nonnull String seriesName) {
-        return seriesToSequenceMapper.getSeriesDetails(seriesName)
-                .map(SeriesInfo::sequenceName)
-                .orElseThrow(() -> new InvalidSeriesException("Invalid series name provided"));
+        SeriesDetail details = uniqueIdMapperRepository.getSeriesDetails(seriesName);
+        if (details == null) {
+            throw new InvalidSeriesException("Invalid series name provided");
+        }
+        return details.sequence();
     }
 
     @Nonnull

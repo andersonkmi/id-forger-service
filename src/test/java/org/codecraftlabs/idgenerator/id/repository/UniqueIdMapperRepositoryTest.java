@@ -33,17 +33,48 @@ class UniqueIdMapperRepositoryTest {
     private UniqueIdMapperRepository repository;
 
     @Test
-    void should_return_next_id_for_sequence() {
-        when(uniqueIdMapper.getNextId("idfs_default")).thenReturn(42L);
-        assertThat(repository.getNextId("idfs_default")).isEqualTo(42L);
+    void should_return_next_id_and_prefix_for_series() {
+        GeneratedId expected = new GeneratedId(42L, "STD");
+        when(uniqueIdMapper.getNextIdForSeries("default")).thenReturn(expected);
+        assertThat(repository.getNextIdForSeries("default")).isSameAs(expected);
+    }
+
+    @Test
+    void should_return_null_next_id_when_series_does_not_exist() {
+        when(uniqueIdMapper.getNextIdForSeries("unknown")).thenReturn(null);
+        assertThat(repository.getNextIdForSeries("unknown")).isNull();
+    }
+
+    @Test
+    void should_throw_sequence_not_found_when_backing_sequence_was_dropped() {
+        SQLException undefined = new SQLException("relation \"idfs_orders\" does not exist", "42P01");
+        when(uniqueIdMapper.getNextIdForSeries("orders"))
+                .thenThrow(new BadSqlGrammarException("getNextIdForSeries", "SELECT nextval(...)", undefined));
+        assertThatExceptionOfType(SequenceNotFoundException.class)
+                .isThrownBy(() -> repository.getNextIdForSeries("orders"));
     }
 
     @Test
     void should_throw_database_exception_on_data_access_error_for_next_id() {
-        when(uniqueIdMapper.getNextId("idfs_default")).thenThrow(new QueryTimeoutException("timeout"));
+        when(uniqueIdMapper.getNextIdForSeries("default")).thenThrow(new QueryTimeoutException("timeout"));
         assertThatExceptionOfType(DatabaseException.class)
-                .isThrownBy(() -> repository.getNextId("idfs_default"))
+                .isThrownBy(() -> repository.getNextIdForSeries("default"))
                 .withMessage("Failed to get the next sequence value");
+    }
+
+    @Test
+    void should_return_series_details() {
+        SeriesDetail expected = new SeriesDetail("idfs_default", "STD");
+        when(uniqueIdMapper.getSeriesDetails("default")).thenReturn(expected);
+        assertThat(repository.getSeriesDetails("default")).isSameAs(expected);
+    }
+
+    @Test
+    void should_throw_database_exception_on_data_access_error_for_series_details() {
+        when(uniqueIdMapper.getSeriesDetails("default")).thenThrow(new QueryTimeoutException("timeout"));
+        assertThatExceptionOfType(DatabaseException.class)
+                .isThrownBy(() -> repository.getSeriesDetails("default"))
+                .withMessage("Failed to get series details");
     }
 
     @Test
@@ -66,26 +97,6 @@ class UniqueIdMapperRepositoryTest {
         assertThatExceptionOfType(DatabaseException.class)
                 .isThrownBy(() -> repository.getCurrentId("idfs_default"))
                 .withMessage("Failed to get the current sequence value");
-    }
-
-    @Test
-    void should_return_true_when_series_exists() {
-        when(uniqueIdMapper.seriesExists("default")).thenReturn(true);
-        assertThat(repository.seriesExists("default")).isTrue();
-    }
-
-    @Test
-    void should_return_false_when_series_does_not_exist() {
-        when(uniqueIdMapper.seriesExists("unknown")).thenReturn(false);
-        assertThat(repository.seriesExists("unknown")).isFalse();
-    }
-
-    @Test
-    void should_throw_database_exception_on_data_access_error_for_series_exists() {
-        when(uniqueIdMapper.seriesExists("default")).thenThrow(new QueryTimeoutException("timeout"));
-        assertThatExceptionOfType(DatabaseException.class)
-                .isThrownBy(() -> repository.seriesExists("default"))
-                .withMessage("Failed to check if series exists");
     }
 
     @Test
@@ -115,6 +126,15 @@ class UniqueIdMapperRepositoryTest {
         assertThatExceptionOfType(SequenceLastValueUpdateFailedException.class)
                 .isThrownBy(() -> repository.updateSequenceLastValue("idfs_default", 500L))
                 .withMessage("Failed to update sequence last value");
+    }
+
+    @Test
+    void should_throw_sequence_not_found_when_updating_a_dropped_sequence() {
+        SQLException undefined = new SQLException("relation \"idfs_orders\" does not exist", "42P01");
+        doThrow(new BadSqlGrammarException("updateSequenceLastValue", "SELECT setval(...)", undefined))
+                .when(uniqueIdMapper).updateSequenceLastValue("idfs_orders", 500L);
+        assertThatExceptionOfType(SequenceNotFoundException.class)
+                .isThrownBy(() -> repository.updateSequenceLastValue("idfs_orders", 500L));
     }
 
     @Test

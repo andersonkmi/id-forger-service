@@ -23,7 +23,7 @@ class TimestampedIdGeneratorProcessor implements IdFormatProcessor {
     @Nonnull
     @Override
     public String generateId(@Nonnull String seriesName) {
-        long id = idGenerator.generateLongId(seriesName);
+        long id = idGenerator.nextId(seriesName).value();
         return format("%015d-%d", id, Instant.now().toEpochMilli());
     }
 }

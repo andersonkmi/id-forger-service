@@ -5,16 +5,13 @@ import org.codecraftlabs.idgenerator.id.Sequence;
 import org.codecraftlabs.idgenerator.id.repository.DatabaseException;
 import org.codecraftlabs.idgenerator.id.repository.SequenceAlreadyExistsException;
 import org.codecraftlabs.idgenerator.id.repository.SequenceNotFoundException;
+import org.codecraftlabs.idgenerator.id.repository.SeriesDetail;
 import org.codecraftlabs.idgenerator.id.repository.UniqueIdMapperRepository;
-import org.codecraftlabs.idgenerator.id.series.SeriesInfo;
-import org.codecraftlabs.idgenerator.id.series.SeriesToSequenceMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
@@ -22,17 +19,14 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class SequenceAdminServiceTest {
     @Mock
     private UniqueIdMapperRepository uniqueIdRepository;
-
-    @Mock
-    private SeriesToSequenceMapper seriesToSequenceMapper;
 
     @InjectMocks
     private SequenceAdminService sequenceAdminService;
@@ -86,7 +80,6 @@ public class SequenceAdminServiceTest {
 
     @Test
     public void should_delete_series_and_its_backing_sequence() {
-        when(uniqueIdRepository.seriesExists("default")).thenReturn(true);
         mapDefaultSeries();
         sequenceAdminService.deleteSeries("default");
         verify(uniqueIdRepository).deleteSeries("public", "default", "idfs_default");
@@ -94,18 +87,7 @@ public class SequenceAdminServiceTest {
 
     @Test
     public void when_series_does_not_exist_on_delete_should_throw_invalid_series_exception() {
-        when(uniqueIdRepository.seriesExists("unknown")).thenReturn(false);
-        assertThatExceptionOfType(InvalidSeriesException.class)
-                .isThrownBy(() -> sequenceAdminService.deleteSeries("unknown"))
-                .withMessage("Invalid series name provided");
-        verifyNoInteractions(seriesToSequenceMapper);
-        verify(uniqueIdRepository, never()).deleteSeries(anyString(), anyString(), anyString());
-    }
-
-    @Test
-    public void when_series_not_mapped_on_delete_should_throw_invalid_series_exception() {
-        when(uniqueIdRepository.seriesExists("unknown")).thenReturn(true);
-        when(seriesToSequenceMapper.getSeriesDetails("unknown")).thenReturn(Optional.empty());
+        when(uniqueIdRepository.getSeriesDetails("unknown")).thenReturn(null);
         assertThatExceptionOfType(InvalidSeriesException.class)
                 .isThrownBy(() -> sequenceAdminService.deleteSeries("unknown"))
                 .withMessage("Invalid series name provided");
@@ -113,9 +95,9 @@ public class SequenceAdminServiceTest {
     }
 
     @Test
-    public void when_database_error_on_series_exists_check_should_propagate_database_exception() {
-        DatabaseException cause = new DatabaseException("Failed to check if series exists");
-        when(uniqueIdRepository.seriesExists("default")).thenThrow(cause);
+    public void when_database_error_on_series_lookup_for_delete_should_propagate_database_exception() {
+        DatabaseException cause = new DatabaseException("Failed to get series details");
+        when(uniqueIdRepository.getSeriesDetails("default")).thenThrow(cause);
         assertThatExceptionOfType(DatabaseException.class)
                 .isThrownBy(() -> sequenceAdminService.deleteSeries("default"))
                 .isSameAs(cause);
@@ -125,12 +107,24 @@ public class SequenceAdminServiceTest {
     @Test
     public void when_database_error_on_delete_should_propagate_database_exception() {
         DatabaseException cause = new DatabaseException("Failed to delete series and sequence");
-        when(uniqueIdRepository.seriesExists("default")).thenReturn(true);
         mapDefaultSeries();
         doThrow(cause).when(uniqueIdRepository).deleteSeries("public", "default", "idfs_default");
         assertThatExceptionOfType(DatabaseException.class)
                 .isThrownBy(() -> sequenceAdminService.deleteSeries("default"))
                 .isSameAs(cause);
+    }
+
+    @Test
+    public void should_read_the_series_mapping_on_every_call_without_caching() {
+        when(uniqueIdRepository.getSeriesDetails("orders"))
+                .thenReturn(new SeriesDetail("idfs_orders", "OLD"))
+                .thenReturn(null);
+
+        sequenceAdminService.deleteSeries("orders");
+        assertThatExceptionOfType(InvalidSeriesException.class)
+                .isThrownBy(() -> sequenceAdminService.deleteSeries("orders"));
+        verify(uniqueIdRepository, times(2)).getSeriesDetails("orders");
+        verify(uniqueIdRepository, times(1)).deleteSeries("public", "orders", "idfs_orders");
     }
 
     // --- getCurrentValue ---
@@ -143,11 +137,11 @@ public class SequenceAdminServiceTest {
     }
 
     @Test
-    public void when_series_not_mapped_for_current_value_should_throw_invalid_series_exception() {
-        when(seriesToSequenceMapper.getSeriesDetails("unknown")).thenReturn(Optional.empty());
+    public void when_series_does_not_exist_for_current_value_should_throw_invalid_series_exception() {
+        when(uniqueIdRepository.getSeriesDetails("unknown")).thenReturn(null);
         assertThatExceptionOfType(InvalidSeriesException.class)
                 .isThrownBy(() -> sequenceAdminService.getCurrentValue("unknown"));
-        verifyNoInteractions(uniqueIdRepository);
+        verify(uniqueIdRepository, never()).getCurrentId(anyString());
     }
 
     @Test
@@ -168,7 +162,7 @@ public class SequenceAdminServiceTest {
 
     @Test
     public void when_series_lookup_fails_on_current_value_should_throw_id_not_generated_exception() {
-        when(seriesToSequenceMapper.getSeriesDetails("default")).thenThrow(new DatabaseException("db error"));
+        when(uniqueIdRepository.getSeriesDetails("default")).thenThrow(new DatabaseException("db error"));
         assertThatExceptionOfType(IdNotGeneratedException.class)
                 .isThrownBy(() -> sequenceAdminService.getCurrentValue("default"));
     }
@@ -193,11 +187,11 @@ public class SequenceAdminServiceTest {
     }
 
     @Test
-    public void when_series_not_mapped_on_details_lookup_should_throw_invalid_series_exception() {
-        when(seriesToSequenceMapper.getSeriesDetails("unknown")).thenReturn(Optional.empty());
+    public void when_series_does_not_exist_on_details_lookup_should_throw_invalid_series_exception() {
+        when(uniqueIdRepository.getSeriesDetails("unknown")).thenReturn(null);
         assertThatExceptionOfType(InvalidSeriesException.class)
                 .isThrownBy(() -> sequenceAdminService.getSequenceDetails("unknown"));
-        verifyNoInteractions(uniqueIdRepository);
+        verify(uniqueIdRepository, never()).getSequenceDetails(anyString(), anyString());
     }
 
     @Test
@@ -234,11 +228,11 @@ public class SequenceAdminServiceTest {
     }
 
     @Test
-    public void when_series_not_mapped_on_update_should_throw_invalid_series_exception() {
-        when(seriesToSequenceMapper.getSeriesDetails("unknown")).thenReturn(Optional.empty());
+    public void when_series_does_not_exist_on_update_should_throw_invalid_series_exception() {
+        when(uniqueIdRepository.getSeriesDetails("unknown")).thenReturn(null);
         assertThatExceptionOfType(InvalidSeriesException.class)
                 .isThrownBy(() -> sequenceAdminService.updateSequenceLastValue("unknown", 500L));
-        verifyNoInteractions(uniqueIdRepository);
+        verify(uniqueIdRepository, never()).updateSequenceLastValue(anyString(), anyLong());
     }
 
     @Test
@@ -250,6 +244,6 @@ public class SequenceAdminServiceTest {
     }
 
     private void mapDefaultSeries() {
-        when(seriesToSequenceMapper.getSeriesDetails("default")).thenReturn(Optional.of(new SeriesInfo("idfs_default", "STD")));
+        when(uniqueIdRepository.getSeriesDetails("default")).thenReturn(new SeriesDetail("idfs_default", "STD"));
     }
 }

@@ -20,13 +20,27 @@ import org.codecraftlabs.idgenerator.id.Sequence;
 @Mapper
 public interface UniqueIdMapper {
     /**
-     * Retrieves the next value from the specified database sequence.
+     * Resolves a series through {@code series_details} and advances its backing sequence
+     * in a single statement, returning the new value together with the series prefix.
      *
-     * @param seriesName the name of the database sequence
-     * @return the next value in the sequence
+     * <p>The {@code WHERE} clause is applied before the select list is evaluated, so an
+     * unknown series returns no row and never consumes a sequence value. If the series is
+     * deleted concurrently, {@code nextval} fails with SQLState {@code 42P01}
+     * (undefined table).</p>
+     *
+     * @param name the series name
+     * @return the generated value and prefix, or {@code null} if the series does not exist
      */
-    @Select("SELECT NEXTVAL(#{seriesName})")
-    long getNextId(@Nonnull @Param("seriesName") String seriesName);
+    @Select("""
+            SELECT nextval(sequence::regclass) AS next_value, prefix
+            FROM series_details
+            WHERE name = #{name}
+            """)
+    @ConstructorArgs({
+            @Arg(column = "next_value", javaType = long.class),
+            @Arg(column = "prefix", javaType = String.class)
+    })
+    GeneratedId getNextIdForSeries(@Nonnull @Param("name") String name);
 
 
     /**
@@ -64,25 +78,22 @@ public interface UniqueIdMapper {
     })
     Sequence getSequenceDetails(@Nonnull @Param("schema") String schema, @Nonnull @Param("name") String name);
 
+    /**
+     * Looks up the backing sequence and prefix of a series in {@code series_details}.
+     *
+     * @param name the series name
+     * @return the series details, or {@code null} if the series does not exist
+     */
     @Select("""
-            SELECT sequence, prefix 
+            SELECT sequence, prefix
             FROM series_details
-            WHERE name = #{name};
+            WHERE name = #{name}
             """)
     @ConstructorArgs({
             @Arg(column = "sequence", javaType = String.class),
             @Arg(column = "prefix", javaType = String.class)
     })
     SeriesDetail getSeriesDetails(@Nonnull @Param("name") String name);
-
-    /**
-     * Checks whether a series is registered in the {@code series_details} table.
-     *
-     * @param name the series name
-     * @return {@code true} if the series exists, {@code false} otherwise
-     */
-    @Select("SELECT EXISTS (SELECT 1 FROM series_details WHERE name = #{name})")
-    boolean seriesExists(@Nonnull @Param("name") String name);
 
     /**
      * Updates the last value of the specified database sequence.

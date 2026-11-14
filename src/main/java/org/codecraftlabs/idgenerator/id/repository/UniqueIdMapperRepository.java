@@ -19,6 +19,7 @@ import java.sql.SQLException;
 @Component
 public class UniqueIdMapperRepository {
     private static final String DUPLICATE_TABLE_SQL_STATE = "42P07";
+    private static final String UNDEFINED_TABLE_SQL_STATE = "42P01";
     private final UniqueIdMapper uniqueIdMapper;
 
     /**
@@ -31,42 +32,42 @@ public class UniqueIdMapperRepository {
     }
 
     /**
-     * Retrieves the next unique ID for the given series by advancing the
-     * underlying database sequence.
+     * Resolves the given series and advances its backing database sequence in a single
+     * round trip. Reads the live {@code series_details} mapping on every call, so changes
+     * made by any instance (deletes, re-creations, prefix changes) take effect immediately.
      *
-     * @param sequenceName sequence name
-     * @return the next unique ID
-     * @throws DatabaseException if the database operation fails
+     * @param seriesName the series name
+     * @return the generated value and the series prefix, or {@code null} if the series does not exist
+     * @throws SequenceNotFoundException if the series' backing sequence no longer exists
+     *                                   (e.g. the series was deleted concurrently)
+     * @throws DatabaseException         if the database operation fails
      */
-    public long getNextId(@Nonnull String sequenceName) {
+    @Nullable
+    public GeneratedId getNextIdForSeries(@Nonnull String seriesName) {
         try {
-            return uniqueIdMapper.getNextId(sequenceName);
+            return uniqueIdMapper.getNextIdForSeries(seriesName);
         } catch (DataAccessException exception) {
+            if (isUndefinedTable(exception)) {
+                throw new SequenceNotFoundException("Sequence backing series '" + seriesName + "' does not exist");
+            }
             throw new DatabaseException("Failed to get the next sequence value", exception);
         }
     }
 
+    /**
+     * Looks up the backing sequence and prefix of the given series.
+     *
+     * @param name the series name
+     * @return the series details, or {@code null} if the series does not exist
+     * @throws DatabaseException if the database operation fails
+     */
+    @Nullable
     @CheckReturnValue
     public SeriesDetail getSeriesDetails(@Nonnull String name) {
         try {
             return uniqueIdMapper.getSeriesDetails(name);
         } catch (DataAccessException exception) {
             throw new DatabaseException("Failed to get series details", exception);
-        }
-    }
-
-    /**
-     * Checks whether the given series is registered in the {@code series_details} table.
-     *
-     * @param name the series name
-     * @return {@code true} if the series exists, {@code false} otherwise
-     * @throws DatabaseException if the database operation fails
-     */
-    public boolean seriesExists(@Nonnull String name) {
-        try {
-            return uniqueIdMapper.seriesExists(name);
-        } catch (DataAccessException exception) {
-            throw new DatabaseException("Failed to check if series exists", exception);
         }
     }
 
@@ -114,6 +115,7 @@ public class UniqueIdMapperRepository {
      *
      * @param sequenceName the sequence name
      * @param lastValue the new last value to set
+     * @throws SequenceNotFoundException              if the sequence no longer exists
      * @throws SequenceLastValueUpdateFailedException if the update fails
      */
     public void updateSequenceLastValue(@Nonnull String sequenceName,
@@ -121,6 +123,9 @@ public class UniqueIdMapperRepository {
         try {
             this.uniqueIdMapper.updateSequenceLastValue(sequenceName, lastValue);
         } catch (DataAccessException exception) {
+            if (isUndefinedTable(exception)) {
+                throw new SequenceNotFoundException("Sequence '" + sequenceName + "' does not exist");
+            }
             throw new SequenceLastValueUpdateFailedException("Failed to update sequence last value", exception);
         }
     }
@@ -191,5 +196,10 @@ public class UniqueIdMapperRepository {
         } catch (DataAccessException exception) {
             throw new DatabaseException("Failed to delete series and sequence", exception);
         }
+    }
+
+    private boolean isUndefinedTable(@Nonnull DataAccessException exception) {
+        return exception.getMostSpecificCause() instanceof SQLException sqlException
+                && UNDEFINED_TABLE_SQL_STATE.equals(sqlException.getSQLState());
     }
 }

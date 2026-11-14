@@ -369,6 +369,47 @@ public class IdGeneratorIntegrationTest {
     }
 
     @Test
+    public void testGetIdAfterDeleteReturns404() {
+        String name = uniqueSeriesName();
+        createSeries(Map.of("name", name, "prefix", "DEL"));
+        getId("/idgenerator/v1/ids/" + name);
+
+        deleteSeries(name);
+
+        assertGetFails("/idgenerator/v1/ids/" + name, "404 Not Found");
+        assertGetFails("/idgenerator/v1/ids/" + name + "?format=prefixed", "404 Not Found");
+    }
+
+    @Test
+    public void testRecreatedSeriesUsesNewPrefix() {
+        String name = uniqueSeriesName();
+        createSeries(Map.of("name", name, "prefix", "OLD"));
+        Assertions.assertThat(getId("/idgenerator/v1/ids/" + name + "?format=prefixed"))
+                .isEqualTo("OLD000000000000001");
+
+        deleteSeries(name);
+        createSeries(Map.of("name", name, "prefix", "NEW"));
+
+        Assertions.assertThat(getId("/idgenerator/v1/ids/" + name + "?format=prefixed"))
+                .isEqualTo("NEW000000000000001");
+    }
+
+    @Test
+    public void testAdminEndpointsSeeDeletedSeriesImmediately() {
+        String name = uniqueSeriesName();
+        createSeries(Map.of("name", name, "prefix", "ADM"));
+        getId("/idgenerator/v1/ids/" + name);
+        Assertions.assertThat(getId("/idgenerator/v1/series/" + name + "/currentValue")).isEqualTo("1");
+
+        deleteSeries(name);
+
+        assertGetFails("/idgenerator/v1/series/" + name + "/currentValue", "404 Not Found");
+        Assertions.assertThatExceptionOfType(HttpClientErrorException.class)
+                .isThrownBy(() -> patchLastValue(name, 10L))
+                .withMessageContaining("404 Not Found");
+    }
+
+    @Test
     public void testDeleteInvalidSeriesReturns404() {
         Assertions.assertThatExceptionOfType(HttpClientErrorException.class)
                 .isThrownBy(() -> deleteSeries("fake"))
