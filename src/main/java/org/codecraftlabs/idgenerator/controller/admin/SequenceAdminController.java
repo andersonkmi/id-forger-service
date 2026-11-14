@@ -106,7 +106,7 @@ public class SequenceAdminController {
             this.sequenceAdminService.deleteSeries(seriesName);
             return ResponseEntity.ok("Done");
         } catch (InvalidSeriesException exception) {
-            LOGGER.error("Series name is invalid", exception);
+            LOGGER.warn("Series name is invalid: {}", exception.getMessage());
             throw new ResponseStatusException(NOT_FOUND, "Series name is invalid", exception);
         }
     }
@@ -132,7 +132,7 @@ public class SequenceAdminController {
             LOGGER.error("Could not update the last value", exception);
             throw new ResponseStatusException(BAD_REQUEST, "Could not update the last value", exception);
         } catch (InvalidSeriesException exception) {
-            LOGGER.error("Series name is invalid", exception);
+            LOGGER.warn("Series name is invalid: {}", exception.getMessage());
             throw new ResponseStatusException(NOT_FOUND, "Series name is invalid", exception);
         }
     }
@@ -155,7 +155,7 @@ public class SequenceAdminController {
             LOGGER.error("Could not retrieve current value", exception);
             throw new ResponseStatusException(BAD_REQUEST, "Could not retrieve current value", exception);
         } catch (InvalidSeriesException exception) {
-            LOGGER.error("Series name is invalid", exception);
+            LOGGER.warn("Series name is invalid: {}", exception.getMessage());
             throw new ResponseStatusException(NOT_FOUND, "Series name is invalid", exception);
         }
     }
@@ -178,7 +178,7 @@ public class SequenceAdminController {
             LOGGER.error("Could not retrieve sequence details", exception);
             throw new ResponseStatusException(BAD_REQUEST, "Could not retrieve sequence details", exception);
         } catch (InvalidSeriesException exception) {
-            LOGGER.error("Series name is invalid", exception);
+            LOGGER.warn("Series name is invalid: {}", exception.getMessage());
             throw new ResponseStatusException(NOT_FOUND, "Series name is invalid", exception);
         }
     }
@@ -193,7 +193,7 @@ public class SequenceAdminController {
      */
     @ExceptionHandler(BulkheadFullException.class)
     public ResponseEntity<String> handleBulkheadFull(BulkheadFullException ex) {
-        LOGGER.warn("Admin bulkhead full, rejecting request", ex);
+        LOGGER.warn("Admin bulkhead full, rejecting request: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                 .header("Retry-After", "1")
                 .body("Admin endpoints are temporarily saturated, please retry shortly");

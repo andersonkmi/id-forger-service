@@ -21,9 +21,8 @@ public class LuhnDigitNumberGenerator {
      */
     @Nonnull
     public String generatorLuhnCheckValidNumber(@Nonnull String partialNumber) {
-        LOGGER.atInfo().log(String.format("Generating Luhn check digit for %s", partialNumber));
         int luhnDigit = calculateCheckDigit(partialNumber);
-        LOGGER.atInfo().log(String.format("Generated Luhn check digit %d", luhnDigit));
+        LOGGER.debug("Generated Luhn check digit {} for {}", luhnDigit, partialNumber);
         return String.format("%s%d", partialNumber, luhnDigit);
     }
 

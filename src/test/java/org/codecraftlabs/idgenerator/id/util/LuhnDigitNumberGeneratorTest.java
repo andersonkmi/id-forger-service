@@ -1,6 +1,11 @@
 package org.codecraftlabs.idgenerator.id.util;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import org.junit.jupiter.api.BeforeEach;
+import org.slf4j.LoggerFactory;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -27,6 +32,22 @@ public class LuhnDigitNumberGeneratorTest {
     public void should_append_correct_luhn_check_digit(String input, String expected) {
         assertThat(luhnDigitNumberGenerator.generatorLuhnCheckValidNumber(input.trim()))
                 .isEqualTo(expected.trim());
+    }
+
+    @Test
+    public void should_not_log_at_info_level_on_the_hot_path() {
+        Logger logger = (Logger) LoggerFactory.getLogger(LuhnDigitNumberGenerator.class);
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        appender.start();
+        logger.addAppender(appender);
+        try {
+            luhnDigitNumberGenerator.generatorLuhnCheckValidNumber("12345");
+
+            assertThat(appender.list)
+                    .noneMatch(event -> event.getLevel().isGreaterOrEqual(Level.INFO));
+        } finally {
+            logger.detachAppender(appender);
+        }
     }
 
     @Test

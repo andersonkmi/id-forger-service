@@ -1,14 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
     <property name="LOGS" value="logs" />
+    <!-- Retention limits, overridable through the standard Spring Boot properties
+         (or env vars such as LOGGING_LOGBACK_ROLLINGPOLICY_MAX_FILE_SIZE) -->
+    <springProperty name="LOG_MAX_FILE_SIZE" source="logging.logback.rollingpolicy.max-file-size" defaultValue="10MB" />
+    <springProperty name="LOG_MAX_HISTORY" source="logging.logback.rollingpolicy.max-history" defaultValue="30" />
+    <springProperty name="LOG_TOTAL_SIZE_CAP" source="logging.logback.rollingpolicy.total-size-cap" defaultValue="1GB" />
 
     <appender name="Console"
               class="ch.qos.logback.core.ConsoleAppender">
-        <layout class="ch.qos.logback.classic.PatternLayout">
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
             <Pattern>
                 %black(%d{ISO8601}) %highlight(%-5level) [%blue(%t)] %yellow(%C{1}): %msg%n%throwable
             </Pattern>
-        </layout>
+        </encoder>
     </appender>
 
     <appender name="RollingFile"
@@ -20,9 +25,15 @@
         </encoder>
 
         <rollingPolicy
-                class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <!-- rollover daily and when the file reaches 10 MegaBytes -->
-            <fileNamePattern>${LOGS}/archived/id-forger-service-%d{yyyy-MM-dd}.log</fileNamePattern>
+                class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <!-- rollover daily and whenever the active file reaches LOG_MAX_FILE_SIZE;
+                 archives older than LOG_MAX_HISTORY days, or beyond LOG_TOTAL_SIZE_CAP
+                 in total, are deleted (oldest first) -->
+            <fileNamePattern>${LOGS}/archived/id-forger-service-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>${LOG_MAX_FILE_SIZE}</maxFileSize>
+            <maxHistory>${LOG_MAX_HISTORY}</maxHistory>
+            <totalSizeCap>${LOG_TOTAL_SIZE_CAP}</totalSizeCap>
+            <cleanHistoryOnStart>true</cleanHistoryOnStart>
         </rollingPolicy>
     </appender>
 

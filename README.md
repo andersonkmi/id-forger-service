@@ -134,6 +134,54 @@ docker build -t codecraftlabs/id-forger-service:1.2.0 docker/app
 docker run -d --name id-generator -p 27110:27110 codecraftlabs/id-forger-service:1.2.0
 ```
 
+#### Enabling browser (CORS) access
+
+Cross-origin requests from browsers are disabled by default. To allow them, set `CORS_ALLOWED_ORIGINS` to a comma-separated list of origins. The setting applies to every endpoint under `/idgenerator`; there is no wildcard option.
+
+```bash
+# Gradle
+CORS_ALLOWED_ORIGINS=http://localhost:8000 ./gradlew bootRun
+
+# Java
+CORS_ALLOWED_ORIGINS=http://localhost:8000,https://app.example.com \
+  java -jar ./build/libs/id-forger-service-1.2.0.jar --spring.profiles.active=local
+
+# Docker
+docker run -d --name id-generator -p 27110:27110 \
+  -e CORS_ALLOWED_ORIGINS=https://app.example.com \
+  codecraftlabs/id-forger-service:1.2.0
+```
+
+At startup the application logs `CORS enabled for origins [...]`, or `No CORS origins configured` when the variable is unset.
+
+#### Testing CORS locally
+
+With the application started using `CORS_ALLOWED_ORIGINS=http://localhost:8000`, simulate a browser preflight request with curl:
+
+```bash
+# Allowed origin: 200 with an Access-Control-Allow-Origin header
+curl -i -X OPTIONS http://localhost:27110/idgenerator/v1/ids/default \
+  -H "Origin: http://localhost:8000" -H "Access-Control-Request-Method: GET"
+
+# Any other origin: 403 Forbidden
+curl -i -X OPTIONS http://localhost:27110/idgenerator/v1/ids/default \
+  -H "Origin: http://evil.example.com" -H "Access-Control-Request-Method: GET"
+```
+
+To test from a real browser, serve any folder on the allowed origin:
+
+```bash
+python3 -m http.server 8000
+```
+
+Then open http://localhost:8000 and run this in the browser's developer console:
+
+```js
+fetch("http://localhost:27110/idgenerator/v1/ids/default").then(r => r.json()).then(console.log)
+```
+
+It prints `{id: "..."}`. If the application runs without `CORS_ALLOWED_ORIGINS`, the same call fails with a CORS error in the console.
+
 ### 3. Generate an ID
 
 ```bash

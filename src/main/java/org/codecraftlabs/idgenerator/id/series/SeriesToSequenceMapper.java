@@ -55,7 +55,7 @@ public class SeriesToSequenceMapper {
         }
 
         SeriesInfo seriesInfo = new SeriesInfo(details.sequence(), details.prefix());
-        LOGGER.atInfo().log(String.format("%s details loaded from the database", seriesName));
+        LOGGER.info("{} details loaded from the database", seriesName);
         addSeriesDetails(seriesName, seriesInfo);
         return Optional.of(seriesInfo);
     }
@@ -68,7 +68,7 @@ public class SeriesToSequenceMapper {
      */
     private void addSeriesDetails(@Nonnull String seriesName,
                                   @Nonnull SeriesInfo seriesInfo) {
-        LOGGER.atInfo().log(String.format("%s details added into the cache", seriesName));
+        LOGGER.debug("{} details added into the cache", seriesName);
         seriesDetails.put(seriesName, seriesInfo);
     }
 }

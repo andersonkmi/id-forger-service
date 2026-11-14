@@ -62,10 +62,12 @@ public class IdGenerationController {
             LOGGER.error("Id not generated", exception);
             throw new ResponseStatusException(BAD_REQUEST, "Id not generated", exception);
         } catch (InvalidSeriesException exception) {
-            LOGGER.error("Series name is invalid", exception);
+            // Client errors are logged as a single line without the stack trace so that
+            // bad requests on the hot path cannot flood the logs
+            LOGGER.warn("Series name is invalid: {}", exception.getMessage());
             throw new ResponseStatusException(NOT_FOUND, "Series name is invalid", exception);
         } catch (InvalidFormatException exception) {
-            LOGGER.error("Format is invalid", exception);
+            LOGGER.warn("Format is invalid: {}", exception.getMessage());
             throw new ResponseStatusException(BAD_REQUEST, "Format is invalid", exception);
         }
     }
