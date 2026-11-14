@@ -1,5 +1,6 @@
 package org.codecraftlabs.idgenerator.id.service.processor;
 
+import org.codecraftlabs.idgenerator.id.repository.GeneratedId;
 import org.codecraftlabs.idgenerator.id.service.IdNotGeneratedException;
 import org.codecraftlabs.idgenerator.id.service.InvalidSeriesException;
 import org.junit.jupiter.api.Test;
@@ -25,7 +26,7 @@ public class TimestampedIdGeneratorProcessorTest {
 
     @Test
     public void should_return_zero_padded_id_followed_by_current_timestamp() {
-        when(idGenerator.generateLongId("default")).thenReturn(100L);
+        when(idGenerator.nextId("default")).thenReturn(new GeneratedId(100L, "STD"));
         long before = Instant.now().toEpochMilli();
         String result = processor.generateId("default");
         long after = Instant.now().toEpochMilli();
@@ -39,20 +40,20 @@ public class TimestampedIdGeneratorProcessorTest {
 
     @Test
     public void should_zero_pad_id_to_fifteen_digits() {
-        when(idGenerator.generateLongId("default")).thenReturn(1L);
+        when(idGenerator.nextId("default")).thenReturn(new GeneratedId(1L, "STD"));
         assertThat(processor.generateId("default")).startsWith("000000000000001-");
     }
 
     @Test
     public void when_series_is_invalid_should_propagate_exception() {
-        when(idGenerator.generateLongId(anyString())).thenThrow(InvalidSeriesException.class);
+        when(idGenerator.nextId(anyString())).thenThrow(InvalidSeriesException.class);
         assertThatExceptionOfType(InvalidSeriesException.class)
                 .isThrownBy(() -> processor.generateId("unknown"));
     }
 
     @Test
     public void when_id_not_generated_should_propagate_exception() {
-        when(idGenerator.generateLongId(anyString())).thenThrow(IdNotGeneratedException.class);
+        when(idGenerator.nextId(anyString())).thenThrow(IdNotGeneratedException.class);
         assertThatExceptionOfType(IdNotGeneratedException.class)
                 .isThrownBy(() -> processor.generateId("default"));
     }
