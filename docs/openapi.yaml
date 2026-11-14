@@ -1,0 +1,501 @@
+openapi: 3.1.0
+info:
+  title: ID Forger Service API
+  version: 1.2.0
+  description: |
+    Centralized ID generation service. IDs are produced from named **series**, each
+    backed by a PostgreSQL sequence, and can be rendered in several output formats.
+
+    The API version is part of the path (`/idgenerator/v1/...`). Requesting an
+    unsupported version (e.g. `/idgenerator/v2/...`) returns `400 Bad Request`.
+
+    Error responses use Spring Boot's default error body. The `message` field is
+    only populated when the `local` profile is active
+    (`server.error.include-message=always`).
+  license:
+    name: MIT
+    identifier: MIT
+servers:
+  - url: http://localhost:27110/idgenerator/v1
+    description: Local development (API v1)
+
+tags:
+  - name: ID generation
+    description: High-volume hot path used by clients to obtain new IDs.
+  - name: Series administration
+    description: |
+      Create, inspect, update and delete series. These endpoints are protected by a
+      Resilience4j semaphore bulkhead (8 concurrent calls, no waiting); excess calls
+      fail fast with `503 Service Unavailable`.
+  - name: Health
+    description: Spring Boot Actuator endpoints.
+
+paths:
+  /ids/{seriesName}:
+    get:
+      tags: [ID generation]
+      operationId: getNextId
+      summary: Generate the next ID for a series
+      description: Advances the series' sequence and returns the new value rendered in the requested format.
+      parameters:
+        - $ref: '#/components/parameters/SeriesName'
+        - name: format
+          in: query
+          required: false
+          description: Output format. When omitted or blank, `plain` is used.
+          schema:
+            $ref: '#/components/schemas/IdFormat'
+          examples:
+            plain:
+              value: plain
+            prefixed:
+              value: prefixed
+      responses:
+        '200':
+          description: The generated ID.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IdResponse'
+              examples:
+                plain:
+                  summary: format=plain
+                  value: { id: '42' }
+                prefixed:
+                  summary: format=prefixed (series prefix + value padded to 15 digits)
+                  value: { id: PROD000001451000042 }
+                timestamped:
+                  summary: format=timestamped (padded value + epoch millis)
+                  value: { id: 000000000000042-1763049600000 }
+                luhn:
+                  summary: format=luhn (value + Luhn check digit)
+                  value: { id: '422' }
+                base64:
+                  summary: format=base64 (Base64 of the plain value)
+                  value: { id: NDI= }
+                sha256:
+                  summary: format=sha256 (64-char hex SHA-256 of the plain value)
+                  value: { id: 73475cb40a568e8da8a045ced110137e159f890ac4da883b6b17dc651b3a8049 }
+        '400':
+          description: Unknown format, or the ID could not be generated (database error).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          $ref: '#/components/responses/SeriesNotFound'
+
+  /series:
+    post:
+      tags: [Series administration]
+      operationId: createSeries
+      summary: Create a series
+      description: |
+        Creates a new series and its backing database sequence (`idfs_<name>`).
+        Only `name` and `prefix` are required; numeric options that are left out fall
+        back to the database defaults (start/min `1`, increment `1`,
+        max `9223372036854775807`).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Series'
+            example:
+              name: orders
+              prefix: ORD
+              startingValue: 500
+              incrementBy: 5
+              minimumValue: 500
+              maximumValue: 10000
+      responses:
+        '201':
+          description: |
+            Series created. Numeric fields reflect the values actually applied to the
+            database sequence, including defaults.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Series'
+              example:
+                name: orders
+                prefix: ORD
+                startingValue: 500
+                minimumValue: 500
+                maximumValue: 10000
+                incrementBy: 5
+        '400':
+          description: |
+            Validation failed (body is a map of field name to error message), or the
+            series could not be created, e.g. because it already exists (body is the
+            default error response).
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/ValidationErrors'
+                  - $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                validation:
+                  summary: Field validation errors
+                  value:
+                    name: name must contain only lowercase letters and digits
+                alreadyExists:
+                  summary: Series already exists
+                  value:
+                    timestamp: '2026-11-14T10:15:30.000+00:00'
+                    status: 400
+                    error: Bad Request
+                    path: /idgenerator/v1/series
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '503':
+          $ref: '#/components/responses/AdminSaturated'
+
+  /series/{seriesName}:
+    patch:
+      tags: [Series administration]
+      operationId: changeLastValue
+      summary: Reset the last value of a series
+      description: |
+        Sets the last value of the series' sequence. The next generated ID will be
+        `newLastValue + incrementBy`. The value must stay within the series' min/max
+        range.
+      parameters:
+        - $ref: '#/components/parameters/SeriesName'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SeriesLastValue'
+            example:
+              newLastValue: 1451500000
+      responses:
+        '200':
+          description: The new last value.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IdResponse'
+              example:
+                id: '1451500000'
+        '400':
+          description: The update failed, e.g. the value is outside the series' min/max range, or the body is malformed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          $ref: '#/components/responses/SeriesNotFound'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '503':
+          $ref: '#/components/responses/AdminSaturated'
+
+    delete:
+      tags: [Series administration]
+      operationId: deleteSeries
+      summary: Delete a series
+      description: |
+        Removes the series and drops its backing database sequence in a single
+        transaction.
+
+        **Note:** the endpoint declares `consumes = application/json`, so the request
+        must send `Content-Type: application/json` even though it has no body;
+        otherwise `415 Unsupported Media Type` is returned.
+      parameters:
+        - $ref: '#/components/parameters/SeriesName'
+      responses:
+        '200':
+          description: |
+            Series deleted. The body is the literal text `Done`, returned with a
+            `Content-Type: application/json` header (it is not a JSON-encoded string).
+          content:
+            application/json:
+              schema:
+                type: string
+                const: Done
+              example: Done
+        '404':
+          $ref: '#/components/responses/SeriesNotFound'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '500':
+          description: The database operation failed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          $ref: '#/components/responses/AdminSaturated'
+
+  /series/{seriesName}/currentValue:
+    get:
+      tags: [Series administration]
+      operationId: getCurrentId
+      summary: Get the current value of a series
+      description: Returns the last generated value without advancing the sequence.
+      parameters:
+        - $ref: '#/components/parameters/SeriesName'
+      responses:
+        '200':
+          description: The current value.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IdResponse'
+              example:
+                id: '42'
+        '400':
+          description: The current value could not be retrieved, e.g. no ID has been generated from the series yet.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          $ref: '#/components/responses/SeriesNotFound'
+        '503':
+          $ref: '#/components/responses/AdminSaturated'
+
+  /series/{seriesName}/details:
+    get:
+      tags: [Series administration]
+      operationId: getSequenceDetails
+      summary: Get series details
+      description: Returns the metadata of the database sequence backing the series.
+      parameters:
+        - $ref: '#/components/parameters/SeriesName'
+      responses:
+        '200':
+          description: Sequence metadata.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SequenceDataResponse'
+              example:
+                schema: public
+                name: idfs_product
+                startValue: 1451000000
+                minValue: 1451000000
+                maxValue: 1451999999
+                incrementBy: 1
+                cacheSize: 1
+                cycle: false
+                lastValue: 1451000042
+        '400':
+          description: The sequence details could not be retrieved (database error).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          $ref: '#/components/responses/SeriesNotFound'
+        '503':
+          $ref: '#/components/responses/AdminSaturated'
+
+  /actuator/health:
+    servers:
+      - url: http://localhost:27110
+        description: Local development (actuator, unversioned)
+    get:
+      tags: [Health]
+      operationId: health
+      summary: Health check
+      responses:
+        '200':
+          description: The service is up.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: UP
+        '503':
+          description: The service or one of its dependencies (e.g. the database) is down.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: DOWN
+
+components:
+  parameters:
+    SeriesName:
+      name: seriesName
+      in: path
+      required: true
+      description: Name of the series (e.g. `default`, `product`).
+      schema:
+        type: string
+        example: default
+
+  schemas:
+    IdFormat:
+      type: string
+      enum: [plain, prefixed, timestamped, luhn, base64, sha256]
+      default: plain
+
+    IdResponse:
+      type: object
+      description: Wrapper carrying a single ID value.
+      required: [id]
+      properties:
+        id:
+          type: string
+          description: The ID, always serialized as a string.
+          example: '42'
+
+    Series:
+      type: object
+      description: Definition of a series, used as both request and response body for series creation.
+      required: [name, prefix]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 50
+          pattern: '^[a-z0-9]+$'
+          description: Series name; lowercase letters and digits only.
+          example: orders
+        prefix:
+          type: string
+          minLength: 1
+          maxLength: 10
+          pattern: '^[a-zA-Z0-9]+$'
+          description: Prefix applied to IDs rendered with the `prefixed` format; letters and digits only.
+          example: ORD
+        startingValue:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Value the sequence starts at. Defaults to the database default.
+          example: 500
+        minimumValue:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Minimum allowed value. Defaults to the database default.
+          example: 500
+        maximumValue:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Maximum allowed value. Defaults to the database default.
+          example: 10000
+        incrementBy:
+          type: integer
+          format: int64
+          minimum: 1
+          description: Step between consecutive values. Defaults to the database default.
+          example: 5
+
+    SeriesLastValue:
+      type: object
+      required: [newLastValue]
+      properties:
+        newLastValue:
+          type: integer
+          format: int64
+          description: The new last value of the sequence.
+          example: 1451500000
+
+    SequenceDataResponse:
+      type: object
+      description: Metadata of the database sequence backing a series.
+      properties:
+        schema:
+          type: string
+          example: public
+        name:
+          type: string
+          description: Name of the database sequence (not the series name).
+          example: idfs_product
+        startValue:
+          type: integer
+          format: int64
+        minValue:
+          type: integer
+          format: int64
+        maxValue:
+          type: integer
+          format: int64
+        incrementBy:
+          type: integer
+          format: int64
+        cacheSize:
+          type: integer
+          format: int64
+        cycle:
+          type: boolean
+        lastValue:
+          type: [integer, 'null']
+          format: int64
+          description: Last value generated, or null if the sequence has never been used.
+
+    ValidationErrors:
+      type: object
+      description: Map of field name to validation error message.
+      additionalProperties:
+        type: string
+      example:
+        name: name must contain only lowercase letters and digits
+        prefix: prefix must be at most 10 characters long
+
+    ErrorResponse:
+      type: object
+      description: Spring Boot default error body.
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        status:
+          type: integer
+          example: 404
+        error:
+          type: string
+          example: Not Found
+        message:
+          type: string
+          description: Only present when the `local` profile is active.
+          example: Series name is invalid
+        path:
+          type: string
+          example: /idgenerator/v1/ids/unknown
+
+  responses:
+    SeriesNotFound:
+      description: The series does not exist.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            timestamp: '2026-11-14T10:15:30.000+00:00'
+            status: 404
+            error: Not Found
+            path: /idgenerator/v1/series/unknown/details
+    UnsupportedMediaType:
+      description: Missing or non-JSON `Content-Type` header.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    AdminSaturated:
+      description: Admin endpoints are saturated (bulkhead full). Retry after the `Retry-After` delay.
+      headers:
+        Retry-After:
+          description: Seconds to wait before retrying.
+          schema:
+            type: integer
+            example: 1
+      content:
+        text/plain:
+          schema:
+            type: string
+          example: Admin endpoints are temporarily saturated, please retry shortly
