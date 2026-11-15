@@ -1,1 +1,5 @@
 rootProject.name = 'id-generator'
+
+include 'id-forger-common'
+include 'id-forger-api'
+include 'id-forger-admin'

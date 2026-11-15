@@ -1,0 +1,183 @@
+openapi: 3.1.0
+info:
+  title: ID Forger API
+  version: 1.2.0
+  description: |
+    High-volume ID generation service. IDs are produced from named **series**, each
+    backed by a PostgreSQL sequence, and can be rendered in several output formats.
+
+    Series are created and managed by the separate **ID Forger Admin** service
+    (see `id-forger-admin/docs/openapi.yaml`). Both services share the same database,
+    so changes made through the admin service take effect here immediately.
+
+    The API version is part of the path (`/idgenerator/v1/...`). Requesting an
+    unsupported version (e.g. `/idgenerator/v2/...`) returns `400 Bad Request`.
+
+    Error responses use Spring Boot's default error body. The `message` field is
+    only populated when the `local` profile is active
+    (`server.error.include-message=always`).
+  license:
+    name: MIT
+    identifier: MIT
+servers:
+  - url: http://localhost:27110/idgenerator/v1
+    description: Local development (API v1)
+
+tags:
+  - name: ID generation
+    description: High-volume hot path used by clients to obtain new IDs.
+  - name: Health
+    description: Spring Boot Actuator endpoints.
+
+paths:
+  /ids/{seriesName}:
+    get:
+      tags: [ID generation]
+      operationId: getNextId
+      summary: Generate the next ID for a series
+      description: |
+        Advances the series' sequence and returns the new value rendered in the requested
+        format. Each successful call consumes exactly one sequence value; an unknown series
+        never consumes one.
+      parameters:
+        - $ref: '#/components/parameters/SeriesName'
+        - name: format
+          in: query
+          required: false
+          description: Output format. When omitted or blank, `plain` is used.
+          schema:
+            $ref: '#/components/schemas/IdFormat'
+          examples:
+            plain:
+              value: plain
+            prefixed:
+              value: prefixed
+      responses:
+        '200':
+          description: The generated ID.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IdResponse'
+              examples:
+                plain:
+                  summary: format=plain
+                  value: { id: '42' }
+                prefixed:
+                  summary: format=prefixed (series prefix + value padded to 15 digits)
+                  value: { id: PROD000001451000042 }
+                timestamped:
+                  summary: format=timestamped (padded value + epoch millis)
+                  value: { id: 000000000000042-1763049600000 }
+                luhn:
+                  summary: format=luhn (value + Luhn check digit)
+                  value: { id: '422' }
+                base64:
+                  summary: format=base64 (Base64 of the plain value)
+                  value: { id: NDI= }
+                sha256:
+                  summary: format=sha256 (64-char hex SHA-256 of the plain value)
+                  value: { id: 73475cb40a568e8da8a045ced110137e159f890ac4da883b6b17dc651b3a8049 }
+        '400':
+          description: Unknown format, unsupported API version, or the ID could not be generated (database error).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                timestamp: '2026-11-14T10:15:30.000+00:00'
+                status: 400
+                error: Bad Request
+                path: /idgenerator/v1/ids/default
+        '404':
+          description: The series does not exist, or its backing sequence was dropped.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                timestamp: '2026-11-14T10:15:30.000+00:00'
+                status: 404
+                error: Not Found
+                path: /idgenerator/v1/ids/unknown
+
+  /actuator/health:
+    servers:
+      - url: http://localhost:27110
+        description: Local development (actuator, unversioned)
+    get:
+      tags: [Health]
+      operationId: health
+      summary: Health check
+      responses:
+        '200':
+          description: The service is up.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              example:
+                status: UP
+        '503':
+          description: The service or one of its dependencies (e.g. the database) is down.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              example:
+                status: DOWN
+
+components:
+  parameters:
+    SeriesName:
+      name: seriesName
+      in: path
+      required: true
+      description: Name of the series (e.g. `default`, `product`).
+      schema:
+        type: string
+        example: default
+
+  schemas:
+    IdFormat:
+      type: string
+      enum: [plain, prefixed, timestamped, luhn, base64, sha256]
+      default: plain
+
+    IdResponse:
+      type: object
+      description: Wrapper carrying a single ID value.
+      required: [id]
+      properties:
+        id:
+          type: string
+          description: The ID, always serialized as a string.
+          example: '42'
+
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: UP
+
+    ErrorResponse:
+      type: object
+      description: Spring Boot default error body.
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        status:
+          type: integer
+          example: 404
+        error:
+          type: string
+          example: Not Found
+        message:
+          type: string
+          description: Only present when the `local` profile is active.
+          example: Series name is invalid
+        path:
+          type: string
+          example: /idgenerator/v1/ids/unknown
