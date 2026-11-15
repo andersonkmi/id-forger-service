@@ -1,0 +1,246 @@
+package org.codecraftlabs.idgenerator.admin.controller;
+
+import io.github.resilience4j.bulkhead.BulkheadFullException;
+import io.github.resilience4j.bulkhead.annotation.Bulkhead;
+import jakarta.validation.Valid;
+import org.codecraftlabs.idgenerator.common.web.ApiPaths;
+import org.codecraftlabs.idgenerator.common.web.IdResponse;
+import org.codecraftlabs.idgenerator.common.service.IdNotGeneratedException;
+import org.codecraftlabs.idgenerator.common.service.InvalidSeriesException;
+import org.codecraftlabs.idgenerator.admin.service.SequenceAdminService;
+import org.codecraftlabs.idgenerator.admin.service.SequenceDetailsRetrievalException;
+import org.codecraftlabs.idgenerator.admin.service.SequenceLastValueUpdateFailedException;
+import org.codecraftlabs.idgenerator.admin.service.SeriesAlreadyExistsException;
+import org.codecraftlabs.idgenerator.admin.service.SeriesData;
+import org.codecraftlabs.idgenerator.admin.service.SeriesNotCreatedException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
+
+import jakarta.annotation.Nonnull;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import static org.springframework.http.HttpStatus.BAD_REQUEST;
+import static org.springframework.http.HttpStatus.CONFLICT;
+import static org.springframework.http.HttpStatus.CREATED;
+import static org.springframework.http.HttpStatus.NOT_FOUND;
+import static org.springframework.http.HttpStatus.OK;
+import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
+import static org.springframework.http.ResponseEntity.status;
+
+/**
+ * REST controller for sequence administration endpoints: read-only inspection
+ * (current value, sequence metadata) and mutating operations (resetting the
+ * last value). Kept separate from the ID generation hot path so that admin
+ * traffic cannot interfere with high-volume ID retrieval.
+ */
+@RestController
+@RequestMapping(ApiPaths.BASE)
+@SuppressWarnings({"MVCPathVariableInspection", "SpringApiVersioningConfigurationInspection"})
+public class SequenceAdminController {
+    private static final Logger LOGGER = LoggerFactory.getLogger(SequenceAdminController.class);
+    private final SequenceAdminService sequenceAdminService;
+
+    /**
+     * @param sequenceAdminService service used to inspect and manage sequences
+     */
+    public SequenceAdminController(@Nonnull SequenceAdminService sequenceAdminService) {
+        this.sequenceAdminService = sequenceAdminService;
+    }
+
+
+    /**
+     * Creates a new series backed by a database sequence. Numeric options omitted from the
+     * request fall back to the database defaults.
+     *
+     * @param request the validated series definition
+     * @return HTTP 201 with the submitted series, 409 if the series already exists,
+     *         or 400 if validation fails or the series could not be created
+     */
+    @Bulkhead(name = "admin", type = Bulkhead.Type.SEMAPHORE)
+    @PostMapping(value = "/series",
+            version = ApiPaths.V1,
+            produces = APPLICATION_JSON_VALUE,
+            consumes = APPLICATION_JSON_VALUE)
+    public ResponseEntity<Series> createSeries(@Valid @RequestBody Series request) {
+        try {
+            var convertedRequest = convert(request);
+            var series = this.sequenceAdminService.createSeries(convertedRequest);
+            var convertedResponse = convertFrom(series);
+            convertedResponse.setPrefix(request.getPrefix());
+            return status(CREATED).body(convertedResponse);
+        } catch (SeriesAlreadyExistsException exception) {
+            // Client-side conflict: single line, no stack trace
+            LOGGER.warn("Series already exists: {}", exception.getMessage());
+            throw new ResponseStatusException(CONFLICT, exception.getMessage(), exception);
+        } catch (SeriesNotCreatedException exception) {
+            LOGGER.error("Could not create new series", exception);
+            throw new ResponseStatusException(BAD_REQUEST, exception.getMessage(), exception);
+        }
+    }
+
+    /**
+     * Deletes an existing series together with its backing database sequence.
+     *
+     * <p>The request has no body, so no {@code Content-Type} header is required.</p>
+     *
+     * @param seriesName the name of the series to delete
+     * @return HTTP 204 with no body once the series has been removed,
+     *         or 404 if the series is unknown
+     */
+    @Bulkhead(name = "admin", type = Bulkhead.Type.SEMAPHORE)
+    @DeleteMapping(value = "/series/{seriesName}", version = ApiPaths.V1)
+    public ResponseEntity<Void> deleteSeries(@PathVariable String seriesName) {
+        try {
+            this.sequenceAdminService.deleteSeries(seriesName);
+            return ResponseEntity.noContent().build();
+        } catch (InvalidSeriesException exception) {
+            LOGGER.warn("Series name is invalid: {}", exception.getMessage());
+            throw new ResponseStatusException(NOT_FOUND, "Series name is invalid", exception);
+        }
+    }
+
+    /**
+     * Updates the last value of a sequence, effectively resetting the next generated ID.
+     *
+     * @param seriesName      the name of the series whose sequence should be updated
+     * @param seriesLastValue request body containing the new last value
+     * @return HTTP 200 with the new last value, or 400 if the body is invalid or the update fails
+     */
+    @Bulkhead(name = "admin", type = Bulkhead.Type.SEMAPHORE)
+    @PatchMapping(value = "/series/{seriesName}",
+            version = ApiPaths.V1,
+            produces = APPLICATION_JSON_VALUE,
+            consumes = APPLICATION_JSON_VALUE)
+    public ResponseEntity<IdResponse> changeLastValue(@PathVariable String seriesName,
+                                                      @Valid @RequestBody SeriesLastValue seriesLastValue) {
+        try {
+            this.sequenceAdminService.updateSequenceLastValue(seriesName, seriesLastValue.newLastValue());
+            return status(OK).body(new IdResponse(String.valueOf(seriesLastValue.newLastValue())));
+        } catch (SequenceLastValueUpdateFailedException exception) {
+            LOGGER.error("Could not update the last value", exception);
+            throw new ResponseStatusException(BAD_REQUEST, "Could not update the last value", exception);
+        } catch (InvalidSeriesException exception) {
+            LOGGER.warn("Series name is invalid: {}", exception.getMessage());
+            throw new ResponseStatusException(NOT_FOUND, "Series name is invalid", exception);
+        }
+    }
+
+    /**
+     * Returns the current (last generated) value for the given series without advancing the sequence.
+     *
+     * @param seriesName the name of the series
+     * @return HTTP 200 with the current value, 404 if the series is unknown, or 400 on error
+     */
+    @Bulkhead(name = "admin", type = Bulkhead.Type.SEMAPHORE)
+    @GetMapping(value = "/series/{seriesName}/currentValue",
+            version = ApiPaths.V1,
+            produces = APPLICATION_JSON_VALUE)
+    public ResponseEntity<IdResponse> getCurrentId(@PathVariable String seriesName) {
+        try {
+            String currentValue = this.sequenceAdminService.getCurrentValue(seriesName);
+            return status(OK).body(new IdResponse(currentValue));
+        } catch (IdNotGeneratedException exception) {
+            LOGGER.error("Could not retrieve current value", exception);
+            throw new ResponseStatusException(BAD_REQUEST, "Could not retrieve current value", exception);
+        } catch (InvalidSeriesException exception) {
+            LOGGER.warn("Series name is invalid: {}", exception.getMessage());
+            throw new ResponseStatusException(NOT_FOUND, "Series name is invalid", exception);
+        }
+    }
+
+    /**
+     * Retrieves full metadata for the sequence backing the given series.
+     *
+     * @param seriesName the name of the series
+     * @return HTTP 200 with {@link SequenceDataResponse} details, 404 if the series is unknown, or 400 on error
+     */
+    @Bulkhead(name = "admin", type = Bulkhead.Type.SEMAPHORE)
+    @GetMapping(value = "/series/{seriesName}/details",
+            version = ApiPaths.V1,
+            produces = APPLICATION_JSON_VALUE)
+    public ResponseEntity<SequenceDataResponse> getSequenceDetails(@PathVariable String seriesName) {
+        try {
+            SequenceDataResponse sequenceDetails = this.sequenceAdminService.getSequenceDetails(seriesName);
+            return status(OK).body(sequenceDetails);
+        } catch (SequenceDetailsRetrievalException exception) {
+            LOGGER.error("Could not retrieve sequence details", exception);
+            throw new ResponseStatusException(BAD_REQUEST, "Could not retrieve sequence details", exception);
+        } catch (InvalidSeriesException exception) {
+            LOGGER.warn("Series name is invalid: {}", exception.getMessage());
+            throw new ResponseStatusException(NOT_FOUND, "Series name is invalid", exception);
+        }
+    }
+
+    /**
+     * Handles bulkhead saturation: when the admin endpoints are already serving the
+     * configured maximum number of concurrent requests, additional ones are rejected
+     * fast with HTTP 503 instead of being queued (and potentially starving the hot path).
+     *
+     * @param ex the bulkhead-full exception thrown by Resilience4j
+     * @return the fast-fail response with a {@code Retry-After} hint
+     */
+    @ExceptionHandler(BulkheadFullException.class)
+    public ResponseEntity<String> handleBulkheadFull(BulkheadFullException ex) {
+        LOGGER.warn("Admin bulkhead full, rejecting request: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .header("Retry-After", "1")
+                .body("Admin endpoints are temporarily saturated, please retry shortly");
+    }
+
+    /**
+     * Handles bean-validation failures and returns a map of field names to
+     * their corresponding error messages with HTTP 400.
+     *
+     * @param ex the validation exception thrown by Spring MVC
+     * @return map of {@code fieldName -> errorMessage} pairs
+     */
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public Map<String, String> handleValidationExceptions(MethodArgumentNotValidException ex) {
+        Map<String, String> errors = new HashMap<>();
+        ex.getBindingResult().getAllErrors().forEach((error) -> {
+            String fieldName = ((FieldError) error).getField();
+            String errorMessage = error.getDefaultMessage();
+            errors.put(fieldName, errorMessage);
+        });
+        return errors;
+    }
+
+    @Nonnull
+    private SeriesData convert(@Nonnull Series from) {
+        return new SeriesData(from.getName(),
+                from.getPrefix(),
+                from.getStartingValue(),
+                from.getIncrementBy(),
+                from.getMinimumValue(),
+                from.getMaximumValue());
+    }
+
+    @Nonnull
+    private Series convertFrom(@Nonnull SeriesData response) {
+        Series convertedResponse = new Series();
+        convertedResponse.setName(response.name());
+        convertedResponse.setStartingValue(response.startingValue());
+        convertedResponse.setIncrementBy(response.incrementBy());
+        convertedResponse.setMinimumValue(response.minimumValue());
+        convertedResponse.setMaximumValue(response.maximumValue());
+        return convertedResponse;
+    }
+}

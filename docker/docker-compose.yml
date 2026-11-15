@@ -1,7 +1,8 @@
-version: '3.8'
 services:
   postgres:
     image: codecraftlabs/idgeneratordb:1.0.0
+    build:
+      context: ./pgsql
     container_name: id-generator-db
     environment:
       POSTGRES_DB: idgenerator
@@ -12,9 +13,12 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
-  id-generator:
-    image: codecraftlabs/id-forger-service:1.2.0
-    container_name: id-generator-app
+  # ID generation hot path (GET /idgenerator/v1/ids/{seriesName})
+  id-forger-api:
+    image: codecraftlabs/id-forger-api:1.2.0
+    build:
+      context: ../id-forger-api
+    container_name: id-forger-api
     depends_on:
       - postgres
     environment:
@@ -25,6 +29,24 @@ services:
       DB_PASSWORD: idgen
     ports:
       - "27110:27110"
+
+  # Series management (/idgenerator/v1/series/**). Has no authentication yet:
+  # keep this port off public networks.
+  id-forger-admin:
+    image: codecraftlabs/id-forger-admin:1.2.0
+    build:
+      context: ../id-forger-admin
+    container_name: id-forger-admin
+    depends_on:
+      - postgres
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: idgenerator
+      DB_USER: idgen
+      DB_PASSWORD: idgen
+    ports:
+      - "27111:27111"
 
 volumes:
   postgres_data:

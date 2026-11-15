@@ -1,0 +1,13 @@
+plugins {
+	id 'java-library'
+	id 'java-test-fixtures'
+}
+
+description = 'Code shared by the ID Forger services: API versioning, CORS, database credentials check and common exceptions'
+
+dependencies {
+	api 'org.springframework.boot:spring-boot-starter-webmvc'
+	api 'org.springframework:spring-tx'
+
+	testFixturesImplementation 'org.springframework:spring-web'
+}

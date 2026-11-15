@@ -60,348 +60,146 @@ Different tools solve different problems. Here’s an honest comparison:
 * depends on configuration
 ---
 
+## 🏗️ Architecture
+
+The project is a Gradle multi-module build with two independently deployable Spring Boot services and a shared library. Both services use the same PostgreSQL database: a **series** is a PostgreSQL sequence (`idfs_<name>`) plus a prefix, registered in the `series_details` table.
+
+```
+                 clients                         operators / internal tools
+                    │                                        │
+       GET /idgenerator/v1/ids/{series}        /idgenerator/v1/series/**
+                    │                                        │
+          ┌─────────▼─────────┐                    ┌─────────▼─────────┐
+          │   id-forger-api   │                    │  id-forger-admin  │
+          │   (port 27110)    │                    │   (port 27111)    │
+          └─────────┬─────────┘                    └─────────┬─────────┘
+                    │     nextval()           CREATE / DROP / setval()
+                    └──────────────┐      ┌──────────────────┘
+                                ┌──▼──────▼──┐
+                                │ PostgreSQL │
+                                └────────────┘
+```
+
+| Module                                           | Type                | Responsibility                                                                                          | Port    |
+| ------------------------------------------------ | ------------------- | ------------------------------------------------------------------------------------------------------- | ------- |
+| [`id-forger-api`](id-forger-api/README.md)       | Spring Boot service | High-volume ID generation hot path: `GET /idgenerator/v1/ids/{seriesName}`                              | `27110` |
+| [`id-forger-admin`](id-forger-admin/README.md)   | Spring Boot service | Series management: create, inspect, reset and delete series under `/idgenerator/v1/series`              | `27111` |
+| [`id-forger-common`](id-forger-common/README.md) | Java library        | Code shared by both services: API versioning, CORS, database credentials check, common exceptions       | —       |
+
+Why two services:
+
+* **Isolation of the hot path.** Admin traffic can never compete with ID generation for threads or connections, and each service can be scaled on its own.
+* **Smaller attack surface.** The public-facing API cannot create, reset or drop sequences; its database code only calls `nextval`. The admin service has no authentication yet, so it can be kept on a private network while only the API is exposed.
+* **No coordination needed.** Neither service caches series data. Every request reads the live `series_details` mapping, so a series created, reset or deleted through the admin service takes effect in the API immediately, across any number of instances.
+
+### Repository layout
+
+```
+.
+├── build.gradle            # conventions shared by all modules
+├── settings.gradle
+├── id-forger-common/       # shared library (+ test fixtures)
+├── id-forger-api/          # ID generation service (Dockerfile, docs/openapi.yaml)
+├── id-forger-admin/        # series management service (Dockerfile, docs/openapi.yaml)
+├── docker/
+│   ├── docker-compose.yml  # PostgreSQL + both services
+│   └── pgsql/              # database image and init.sql (schema + seed series)
+└── db-changes/             # individual DDL scripts for the shared schema
+```
+
+---
+
 ## ⚡ Quick Start
 
-### 1. Start PostgreSQL
+Requirements: JDK 21 and Docker.
 
-The service requires a PostgreSQL database. A ready-to-use image is defined in `docker/pgsql/Dockerfile` (based on `postgres:17.5`). On first startup it runs `docker/pgsql/init.sql`, which creates the `default_sequence` and `product_sequence` sequences.
-
-Build the image:
-
-```bash
-docker image build -t codecraftlabs/id-forger-service-dev:1.0.0 docker/pgsql
-```
-
-Create and start the container. The image has no built-in password, so `POSTGRES_PASSWORD` must be set when it starts:
-
-```bash
-docker run -d --name id-forger-dev-db -p 5432:5432 -e POSTGRES_PASSWORD=idgen -v id-forger-dev-db-pgdata:/var/lib/postgresql/data codecraftlabs/id-forger-service-dev:1.0.0
-```
-
-Default connection settings for the `local` profile:
-
-| Setting  | Value         |
-| -------- | ------------- |
-| Host     | `localhost`   |
-| Port     | `5432`        |
-| Database | `idgenerator` |
-| User     | `idgen`       |
-| Password | `idgen`       |
-
-These can be overridden for the application via the `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER` and `DB_PASSWORD` environment variables.
-
-The default user and password only exist in the `local` profile (`application-local.properties`). Outside of it, `DB_USER` and `DB_PASSWORD` are required and the application refuses to start without them.
-
-Verify the database:
-
-```bash
-docker exec -it id-forger-dev-db psql -U idgen -d idgenerator -c "SELECT sequencename FROM pg_sequences;"
-```
-
-### 2. Run the application
-
-Locally with Gradle (`bootRun` activates the `local` profile):
-
-```bash
-./gradlew bootRun
-```
-
-Or running the Java command:
-
-```
-export SPRING_PROFILES_ACTIVE=local
-java -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=\*:5005 -jar ./build/libs/id-forger-service-1.2.0.jar --spring.profiles.active=local
-```
-
-Or with Docker:
-
-- Build the application:
+### 1. Build
 
 ```bash
 ./gradlew clean build
 ```
 
-- Create the application image using the following command:
+This compiles every module, runs all unit tests and produces `id-forger-api/build/libs/id-forger-api-1.2.0.jar` and `id-forger-admin/build/libs/id-forger-admin-1.2.0.jar`.
+
+### 2. Run everything with Docker Compose
 
 ```bash
-docker build -t codecraftlabs/id-forger-service:1.2.0 docker/app
+docker compose -f docker/docker-compose.yml up -d --build
 ```
 
-- Start the container using the following command:
+This builds the images from the jars produced in step 1 and starts:
 
+| Container          | Image                                  | Port    |
+| ------------------ | -------------------------------------- | ------- |
+| `id-generator-db`  | `codecraftlabs/idgeneratordb:1.0.0`    | `5432`  |
+| `id-forger-api`    | `codecraftlabs/id-forger-api:1.2.0`    | `27110` |
+| `id-forger-admin`  | `codecraftlabs/id-forger-admin:1.2.0`  | `27111` |
+
+On first startup the database runs `docker/pgsql/init.sql`, which creates the `series_details` table and the `default` and `product` series.
+
+> **Note:** `init.sql` only runs when the data volume is empty. Existing data in the `postgres_data` volume is kept across restarts and upgrades.
+
+### 3. Create a series and generate IDs
 
 ```bash
-docker run -d --name id-generator -p 27110:27110 codecraftlabs/id-forger-service:1.2.0
+# Create a series (admin service)
+curl -X POST http://localhost:27111/idgenerator/v1/series \
+  -H "Content-Type: application/json" \
+  -d '{ "name": "orders", "prefix": "ORD", "startingValue": 500 }'
+
+# Generate IDs from it (API service)
+curl http://localhost:27110/idgenerator/v1/ids/orders
+curl "http://localhost:27110/idgenerator/v1/ids/orders?format=prefixed"
 ```
-
-#### Enabling browser (CORS) access
-
-Cross-origin requests from browsers are disabled by default. To allow them, set `CORS_ALLOWED_ORIGINS` to a comma-separated list of origins. The setting applies to every endpoint under `/idgenerator`; there is no wildcard option.
-
-```bash
-# Gradle
-CORS_ALLOWED_ORIGINS=http://localhost:8000 ./gradlew bootRun
-
-# Java
-CORS_ALLOWED_ORIGINS=http://localhost:8000,https://app.example.com \
-  java -jar ./build/libs/id-forger-service-1.2.0.jar --spring.profiles.active=local
-
-# Docker
-docker run -d --name id-generator -p 27110:27110 \
-  -e CORS_ALLOWED_ORIGINS=https://app.example.com \
-  codecraftlabs/id-forger-service:1.2.0
-```
-
-At startup the application logs `CORS enabled for origins [...]`, or `No CORS origins configured` when the variable is unset.
-
-#### Testing CORS locally
-
-With the application started using `CORS_ALLOWED_ORIGINS=http://localhost:8000`, simulate a browser preflight request with curl:
-
-```bash
-# Allowed origin: 200 with an Access-Control-Allow-Origin header
-curl -i -X OPTIONS http://localhost:27110/idgenerator/v1/ids/default \
-  -H "Origin: http://localhost:8000" -H "Access-Control-Request-Method: GET"
-
-# Any other origin: 403 Forbidden
-curl -i -X OPTIONS http://localhost:27110/idgenerator/v1/ids/default \
-  -H "Origin: http://evil.example.com" -H "Access-Control-Request-Method: GET"
-```
-
-To test from a real browser, serve any folder on the allowed origin:
-
-```bash
-python3 -m http.server 8000
-```
-
-Then open http://localhost:8000 and run this in the browser's developer console:
-
-```js
-fetch("http://localhost:27110/idgenerator/v1/ids/default").then(r => r.json()).then(console.log)
-```
-
-It prints `{id: "..."}`. If the application runs without `CORS_ALLOWED_ORIGINS`, the same call fails with a CORS error in the console.
-
-### 3. Generate an ID
-
-```bash
-curl http://localhost:27110/idgenerator/v1/ids/default
-```
-
-Response:
 
 ```json
-{
-  "id": "1"
-}
+{ "id": "500" }
+{ "id": "ORD000000000000501" }
 ```
 
-See [API Examples](#-api-examples) for every available endpoint, or the [OpenAPI spec](docs/openapi.yaml) for the full API contract.
-
-### Managing the database container
+### 4. Stop
 
 ```bash
-docker stop id-forger-dev-db     # stop
-docker start id-forger-dev-db    # start again
-docker rm -f id-forger-dev-db    # remove the container
-docker volume rm id-forger-dev-db-pgdata  # remove data (init.sql runs again on next creation)
+docker compose -f docker/docker-compose.yml down   # keeps the database volume
 ```
 
-> **Note:** `init.sql` only runs when the data volume is empty. To pick up changes to it, remove the volume and recreate the container.
-
-### Logging
-
-Logs are written to the console and to `logs/id-forger-service.log`, relative to the directory the application is started from. The file rolls over daily and whenever it reaches the maximum size. Archives go to `logs/archived/`, and the oldest are deleted once either retention limit is reached.
-
-| Setting                    | Default | Environment variable                            |
-| -------------------------- | ------- | ----------------------------------------------- |
-| Maximum size of one file   | `10MB`  | `LOGGING_LOGBACK_ROLLINGPOLICY_MAX_FILE_SIZE`   |
-| Days of archives kept      | `30`    | `LOGGING_LOGBACK_ROLLINGPOLICY_MAX_HISTORY`     |
-| Total size of all archives | `1GB`   | `LOGGING_LOGBACK_ROLLINGPOLICY_TOTAL_SIZE_CAP`  |
-
-For example:
-
-```bash
-LOGGING_LOGBACK_ROLLINGPOLICY_MAX_HISTORY=7 LOGGING_LOGBACK_ROLLINGPOLICY_TOTAL_SIZE_CAP=200MB ./gradlew bootRun
-```
-
-Requests rejected because of client errors (unknown series, invalid format, existing series) are logged as a single `WARN` line. Server-side failures are logged at `ERROR` with the stack trace.
+To run a single service outside Docker (e.g. from your IDE or with `bootRun`), see its README.
 
 ---
 
-## 📡 API Examples
+## 📡 API documentation
 
-All endpoints live under `/idgenerator/v1` and the service listens on port `27110` by default. The version is part of the path; an unsupported version (e.g. `/idgenerator/v2/...`) returns `400 Bad Request`.
+Each service has its own OpenAPI 3.1 spec:
 
-The examples below use the `default` and `product` series that `init.sql` creates.
+| Service           | Spec                                                                     | Endpoints                                          |
+| ----------------- | ------------------------------------------------------------------------ | -------------------------------------------------- |
+| `id-forger-api`   | [`id-forger-api/docs/openapi.yaml`](id-forger-api/docs/openapi.yaml)     | `GET /ids/{seriesName}`, health                    |
+| `id-forger-admin` | [`id-forger-admin/docs/openapi.yaml`](id-forger-admin/docs/openapi.yaml) | `POST /series`, `PATCH`/`DELETE /series/{name}`, `GET /series/{name}/currentValue`, `GET /series/{name}/details`, health |
 
-### OpenAPI specification
+Use them to browse the API in a viewer such as [Swagger Editor](https://editor.swagger.io/), generate client SDKs with [OpenAPI Generator](https://openapi-generator.tech/), or import the endpoints into Postman or Insomnia.
 
-The full API contract is described in an OpenAPI 3.1 spec at [`docs/openapi.yaml`](docs/openapi.yaml). It covers every endpoint, its request and response schemas (including validation rules), and the possible error responses.
+> The specs are maintained by hand. When you add or change an endpoint, update the spec of the module it belongs to.
 
-Use it to:
+---
 
-* Browse the API in a viewer such as [Swagger Editor](https://editor.swagger.io/) (paste or import the file)
-* Generate client SDKs in your language with tools like [OpenAPI Generator](https://openapi-generator.tech/)
-* Import the endpoints into Postman, Insomnia or similar tools
+## 🧪 Tests
 
-> The spec is maintained by hand. When you add or change an endpoint, update `docs/openapi.yaml` too.
+Every module keeps its tests in its own source sets. The same tasks can be run for all modules from the root, or for a single module with a `:<module>:` prefix.
 
-### Generate the next ID
-
-```bash
-curl http://localhost:27110/idgenerator/v1/ids/default
-```
-
-```json
-{ "id": "42" }
-```
-
-#### Output formats
-
-Use the optional `format` query parameter to change how the ID is rendered. When omitted or blank, `plain` is used.
-
-| Format        | Example request                     | Example output                                                     |
-| ------------- | ----------------------------------- | ------------------------------------------------------------------ |
-| `plain`       | `/ids/default?format=plain`         | `42`                                                               |
-| `prefixed`    | `/ids/product?format=prefixed`      | `PROD000001451000042` (series prefix + value padded to 15 digits)  |
-| `timestamped` | `/ids/default?format=timestamped`   | `000000000000042-1763049600000` (padded value + epoch millis)      |
-| `luhn`        | `/ids/default?format=luhn`          | `422` (value + Luhn check digit)                                   |
-| `base64`      | `/ids/default?format=base64`        | `NDI=` (Base64 of the plain value)                                 |
-| `sha256`      | `/ids/default?format=sha256`        | `73475cb4...` (64-char hex SHA-256 of the plain value)             |
+| Task              | What it runs                                                                                     | Needs                          |
+| ----------------- | ------------------------------------------------------------------------------------------------ | ------------------------------ |
+| `test`            | Unit tests (`src/test`), part of `build`                                                         | —                              |
+| `integrationTest` | Integration tests (`src/integrationTest`, tag `integration`); each service boots against its own PostgreSQL Testcontainer seeded with `docker/pgsql/init.sql` | Docker                         |
+| `loadTest`        | Load tests (`src/integrationTest`, tag `load`) against an already running service                | Running service (e.g. compose) |
 
 ```bash
-curl "http://localhost:27110/idgenerator/v1/ids/product?format=prefixed"
+./gradlew build integrationTest                       # everything CI runs
+./gradlew :id-forger-api:integrationTest              # one module
+./gradlew :id-forger-api:loadTest --rerun -PloadTest.totalCalls=2000
+./gradlew :id-forger-admin:loadTest --rerun
 ```
 
-```json
-{ "id": "PROD000001451000042" }
-```
-
-An unknown series returns `404 Not Found`; an unknown format returns `400 Bad Request`.
-
-### Create a series
-
-Only `name` and `prefix` are required. Numeric options that are left out fall back to the database defaults (start/min `1`, increment `1`, max `9223372036854775807`).
-
-```bash
-curl -X POST http://localhost:27110/idgenerator/v1/series \
-  -H "Content-Type: application/json" \
-  -d '{
-        "name": "orders",
-        "prefix": "ORD",
-        "startingValue": 500,
-        "incrementBy": 5,
-        "minimumValue": 500,
-        "maximumValue": 10000
-      }'
-```
-
-Response (`201 Created`):
-
-```json
-{
-  "name": "orders",
-  "prefix": "ORD",
-  "startingValue": 500,
-  "minimumValue": 500,
-  "maximumValue": 10000,
-  "incrementBy": 5
-}
-```
-
-Validation rules:
-
-* `name`: lowercase letters and digits only, up to 50 characters
-* `prefix`: letters and digits only, up to 10 characters
-* `startingValue`, `minimumValue`, `maximumValue`: zero or positive
-* `incrementBy`: positive
-
-Invalid fields return `400 Bad Request` with a map of field errors, e.g.:
-
-```json
-{ "name": "name must contain only lowercase letters and digits" }
-```
-
-Creating a series that already exists returns `409 Conflict`.
-
-### Get the current value of a series
-
-Returns the last generated value without advancing the sequence.
-
-```bash
-curl http://localhost:27110/idgenerator/v1/series/default/currentValue
-```
-
-```json
-{ "id": "42" }
-```
-
-### Get series details
-
-```bash
-curl http://localhost:27110/idgenerator/v1/series/product/details
-```
-
-```json
-{
-  "schema": "public",
-  "name": "idfs_product",
-  "startValue": 1451000000,
-  "minValue": 1451000000,
-  "maxValue": 1451999999,
-  "incrementBy": 1,
-  "cacheSize": 1,
-  "cycle": false,
-  "lastValue": 1451000042
-}
-```
-
-### Reset the last value of a series
-
-The next generated ID will be `newLastValue + incrementBy`. The value must stay within the series' min/max range, otherwise `400 Bad Request` is returned.
-
-```bash
-curl -X PATCH http://localhost:27110/idgenerator/v1/series/product \
-  -H "Content-Type: application/json" \
-  -d '{ "newLastValue": 1451500000 }'
-```
-
-```json
-{ "id": "1451500000" }
-```
-
-### Delete a series
-
-Removes the series together with its backing database sequence. The request has no body, so no `Content-Type` header is needed.
-
-```bash
-curl -i -X DELETE http://localhost:27110/idgenerator/v1/series/orders
-```
-
-Response: `204 No Content` with an empty body. An unknown series returns `404 Not Found`.
-
-### Health check
-
-```bash
-curl http://localhost:27110/actuator/health
-```
-
-```json
-{ "status": "UP" }
-```
-
-### Error responses
-
-| Status                        | When                                                                 |
-| ----------------------------- | -------------------------------------------------------------------- |
-| `400 Bad Request`             | Invalid format, validation errors, out-of-range values, unsupported API version |
-| `404 Not Found`               | Unknown series                                                       |
-| `409 Conflict`                | Creating a series that already exists                                |
-| `415 Unsupported Media Type`  | Missing or non-JSON `Content-Type` on POST/PATCH                     |
-| `503 Service Unavailable`     | Admin (`/series`) endpoints saturated; retry after the `Retry-After` hint |
-
-> Error messages are only included in the response body when the `local` profile is active.
+See the module READMEs for what each suite covers.
 
 ---
 
@@ -427,14 +225,6 @@ TRACE-9F82K3
 
 ---
 
-## 🏗️ Architecture Overview
-
-* Stateless API layer
-* Pluggable ID strategies
-* Scalable horizontally
-
----
-
 ## 📊 Performance
 
 To be added.
@@ -443,7 +233,7 @@ To be added.
 
 ## 🔌 Integration
 
-Works with any language via HTTP. Client code can be generated from the [OpenAPI spec](docs/openapi.yaml).
+Works with any language via HTTP. Client code can be generated from the [ID Forger API spec](id-forger-api/docs/openapi.yaml).
 
 Planned:
 
@@ -465,7 +255,7 @@ If you want zero infrastructure, UUID/ULID may be a better fit.
 
 ### Known limitations
 
-* **The admin endpoints have no authentication yet.** Anyone who can reach `/idgenerator/v1/series/**` can create, delete or reset series. Resetting a sequence to a lower value makes it issue IDs that were already handed out. Until authentication is added, expose only the ID generation endpoint publicly, and restrict the admin endpoints at the network level (gateway, firewall or private network).
+* **The admin service has no authentication yet.** Anyone who can reach `id-forger-admin` can create, delete or reset series. Resetting a sequence to a lower value makes it issue IDs that were already handed out. Until authentication is added, expose only `id-forger-api` publicly, and keep `id-forger-admin` on a private network (gateway, firewall or private subnet).
 
 ---
 
@@ -473,6 +263,7 @@ If you want zero infrastructure, UUID/ULID may be a better fit.
 
 * [ ] UI for admin/management purposes
 * [ ] Authentication for the admin endpoints
+* [x] Split ID generation and series management into separate services
 * [x] API examples
 * [x] OpenAPI specification
 

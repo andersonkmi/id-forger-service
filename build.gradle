@@ -1,121 +1,123 @@
-buildscript {
-	repositories {
-		mavenCentral()
-	}
-}
+import org.springframework.boot.gradle.plugin.SpringBootPlugin
 
 plugins {
-	id ("org.springframework.boot") version "4.1.2"
-	id ("io.spring.dependency-management") version "1.1.7"
-	id ("java")
-	id ("jacoco")
+	id ("org.springframework.boot") version "4.1.2" apply false
+	id ("io.spring.dependency-management") version "1.1.7" apply false
 }
 
-group = 'org.codecraftlabs'
-version = '1.2.0'
+// Conventions shared by every module
+subprojects {
+	apply plugin: 'java'
+	apply plugin: 'jacoco'
+	apply plugin: 'io.spring.dependency-management'
 
-repositories {
-	mavenLocal()
-	mavenCentral()
-}
+	group = 'org.codecraftlabs'
+	version = '1.2.0'
 
-java {
-	toolchain {
-		languageVersion = JavaLanguageVersion.of(21)
+	repositories {
+		mavenLocal()
+		mavenCentral()
+	}
+
+	java {
+		toolchain {
+			languageVersion = JavaLanguageVersion.of(21)
+		}
+	}
+
+	dependencyManagement {
+		imports {
+			mavenBom SpringBootPlugin.BOM_COORDINATES
+		}
+	}
+
+	dependencies {
+		testImplementation 'org.springframework.boot:spring-boot-starter-test'
+		testImplementation 'org.junit.jupiter:junit-jupiter'
+		testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+	}
+
+	test {
+		useJUnitPlatform()
+		finalizedBy jacocoTestReport
+	}
+
+	jacocoTestReport {
+		dependsOn test // tests are required to run before generating the report
 	}
 }
 
-dependencies {
-	// Spring related dependencies
-	implementation 'org.springframework.boot:spring-boot-starter-actuator'
-	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
-	implementation 'org.springframework.boot:spring-boot-starter-validation'
-	implementation 'org.springframework.boot:spring-boot-starter-aspectj'
-    implementation 'org.springframework.boot:spring-boot-starter-jdbc'
-	implementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter:4.1.0'
-	implementation 'io.github.resilience4j:resilience4j-spring-boot4:2.4.0'
-	runtimeOnly 'org.postgresql:postgresql:42.7.14'
+// Conventions shared by the runnable Spring Boot services
+configure([project(':id-forger-api'), project(':id-forger-admin')]) {
+	apply plugin: 'org.springframework.boot'
 
-	// Test related dependencies
-	testImplementation 'org.springframework.boot:spring-boot-starter-test'
-	testImplementation 'org.junit.jupiter:junit-jupiter'
-}
-
-test {
-	useJUnitPlatform()
-	finalizedBy jacocoTestReport
-}
-
-jacocoTestReport {
-	dependsOn test // tests are required to run before generating the report
-}
-
-bootJar {
-	mainClass = 'org.codecraftlabs.idgenerator.MainApplication'
-	archiveBaseName = 'id-forger-service'
-	manifest {
-		attributes('Implementation-Title': 'ID Forger Service', 'Implementation-Version': version)
+	dependencies {
+		implementation project(':id-forger-common')
+		testImplementation testFixtures(project(':id-forger-common'))
 	}
-}
 
-bootRun {
-	systemProperty 'spring.profiles.active', findProperty('profile') ?: 'local'
-}
+	bootRun {
+		systemProperty 'spring.profiles.active', findProperty('profile') ?: 'local'
+	}
 
-tasks.register('deleteLogs', Delete) {
-	delete fileTree("${projectDir}/logs")
-}
+	tasks.register('deleteLogs', Delete) {
+		delete fileTree("${projectDir}/logs")
+	}
 
-tasks.named("clean") {
-	dependsOn tasks.named("deleteLogs")
-}
+	tasks.named("clean") {
+		dependsOn tasks.named("deleteLogs")
+	}
 
-sourceSets {
-    integrationTest {
-        java {
-            srcDir 'src/integrationTest/java'
-        }
-        resources {
-            srcDir 'src/integrationTest/resources'
-        }
-        compileClasspath += main.output + test.output
-        runtimeClasspath += main.output + test.output
-    }
-}
+	sourceSets {
+		integrationTest {
+			java {
+				srcDir 'src/integrationTest/java'
+			}
+			resources {
+				srcDir 'src/integrationTest/resources'
+			}
+			compileClasspath += main.output + test.output
+			runtimeClasspath += main.output + test.output
+		}
+	}
 
-configurations {
-    integrationTestImplementation.extendsFrom testImplementation
-    integrationTestRuntimeOnly.extendsFrom testRuntimeOnly
-}
+	configurations {
+		integrationTestImplementation.extendsFrom testImplementation
+		integrationTestRuntimeOnly.extendsFrom testRuntimeOnly
+	}
 
-dependencies {
-    integrationTestImplementation 'org.junit.jupiter:junit-jupiter'
-    integrationTestImplementation 'org.springframework.boot:spring-boot-starter-webmvc'
-    integrationTestImplementation 'org.springframework.boot:spring-boot-starter-test'
-    integrationTestImplementation 'org.springframework.boot:spring-boot-testcontainers'
-    integrationTestImplementation 'org.testcontainers:testcontainers-junit-jupiter'
-    integrationTestImplementation 'org.testcontainers:testcontainers-postgresql'
-}
+	dependencies {
+		integrationTestImplementation 'org.springframework.boot:spring-boot-starter-test'
+		integrationTestImplementation 'org.springframework.boot:spring-boot-testcontainers'
+		integrationTestImplementation 'org.testcontainers:testcontainers-junit-jupiter'
+		integrationTestImplementation 'org.testcontainers:testcontainers-postgresql'
+	}
 
-// Self-contained: boots the app on a random port against a Postgres Testcontainer (requires Docker)
-tasks.register('integrationTest', Test) {
-    testClassesDirs = sourceSets.integrationTest.output.classesDirs
-    classpath = sourceSets.integrationTest.runtimeClasspath
+	// Self-contained: boots the service on a random port against a Postgres Testcontainer (requires Docker).
+	// The container is seeded with the shared schema in docker/pgsql/init.sql.
+	tasks.register('integrationTest', Test) {
+		description = 'Runs the integration tests against a Postgres Testcontainer.'
+		group = 'verification'
+		testClassesDirs = sourceSets.integrationTest.output.classesDirs
+		classpath = sourceSets.integrationTest.runtimeClasspath
+		systemProperty 'integrationTest.initSql', rootProject.file('docker/pgsql/init.sql').absolutePath
 
-    useJUnitPlatform {
-        includeTags 'integration'
-    }
-}
+		useJUnitPlatform {
+			includeTags 'integration'
+		}
+	}
 
-// Load test against an already running instance (e.g. docker compose up), defaults to http://localhost:27110
-tasks.register('loadTest', Test) {
-    testClassesDirs = sourceSets.integrationTest.output.classesDirs
-    classpath = sourceSets.integrationTest.runtimeClasspath
-    systemProperty 'loadTest.baseUrl', findProperty('loadTest.baseUrl') ?: 'http://localhost:27110'
-    systemProperty 'loadTest.totalCalls', findProperty('loadTest.totalCalls') ?: '100000'
-    testLogging.showStandardStreams = true
+	// Load test against an already running instance (e.g. docker compose up).
+	// Each module sets its own default base URL and number of calls.
+	tasks.register('loadTest', Test) {
+		description = 'Runs the load test against an already running instance of the service.'
+		group = 'verification'
+		testClassesDirs = sourceSets.integrationTest.output.classesDirs
+		classpath = sourceSets.integrationTest.runtimeClasspath
+		testLogging.showStandardStreams = true
 
-    useJUnitPlatform {
-        includeTags 'load'
-    }
+		useJUnitPlatform {
+			includeTags 'load'
+		}
+	}
 }

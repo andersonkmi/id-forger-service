@@ -1,0 +1,22 @@
+description = 'ID Forger API: high-volume ID generation endpoint'
+
+dependencies {
+	implementation 'org.springframework.boot:spring-boot-starter-actuator'
+	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
+	implementation 'org.springframework.boot:spring-boot-starter-jdbc'
+	implementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter:4.1.0'
+	runtimeOnly 'org.postgresql:postgresql:42.7.14'
+}
+
+bootJar {
+	mainClass = 'org.codecraftlabs.idgenerator.api.IdForgerApiApplication'
+	archiveBaseName = 'id-forger-api'
+	manifest {
+		attributes('Implementation-Title': 'ID Forger API', 'Implementation-Version': version)
+	}
+}
+
+tasks.named('loadTest') {
+	systemProperty 'loadTest.baseUrl', findProperty('loadTest.baseUrl') ?: 'http://localhost:27110'
+	systemProperty 'loadTest.totalCalls', findProperty('loadTest.totalCalls') ?: '100000'
+}
